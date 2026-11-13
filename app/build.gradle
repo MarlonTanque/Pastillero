@@ -1,0 +1,67 @@
+// Lectura: El módulo genera un APK Android; el archivo Gradle raíz fija la versión del complemento.
+plugins { id 'com.android.application' }
+def publicFirebase = [:]
+// Lectura: Busca la configuración pública en app/google-services.json, junto al módulo que genera el APK.
+def googleConfig = file('google-services.json')
+if (googleConfig.exists()) {
+    def googleJson = new groovy.json.JsonSlurper().parse(googleConfig)
+    // Lectura: Impide conectar por error con otro proyecto Firebase; un ID distinto detiene la compilación.
+    if (googleJson.project_info.project_id != 'pastillerobadi') {
+        throw new GradleException('google-services.json must belong to the dedicated pastillerobadi project')
+    }
+    def androidClient = googleJson.client.find { it.client_info.android_client_info.package_name == 'mx.edu.badi.pastillero' }
+    if (!androidClient) throw new GradleException('Firebase Android package does not match mx.edu.badi.pastillero')
+    publicFirebase = [apiKey: androidClient.api_key[0].current_key,
+                      appId: androidClient.client_info.mobilesdk_app_id,
+                      projectId: googleJson.project_info.project_id,
+                      databaseUrl: googleJson.project_info.firebase_url ?: 'https://pastillerobadi-default-rtdb.firebaseio.com']
+}
+def config = new Properties()
+def configFile = rootProject.file('firebase-config.properties')
+if (configFile.exists()) configFile.withInputStream { config.load(it) }
+def quoted = { name, fallback -> '"' + config.getProperty(name, publicFirebase.get(name, fallback).toString()).replace('\\', '\\\\').replace('"', '\\"') + '"' }
+android {
+    namespace 'mx.edu.badi.pastillero'
+    compileSdk 36
+    defaultConfig {
+        // Lectura: Identificador del APK instalado: debe coincidir con el cliente Android registrado en Firebase.
+        applicationId 'mx.edu.badi.pastillero'
+        // Lectura: El APK admite desde Android 7/API 24; no cambia la versión del esquema Room.
+        minSdk 24
+        targetSdk 36
+        // Lectura: Número creciente de actualización para instalar esta entrega encima de la anterior, conservando sus
+        // Lectura: datos.
+        versionCode 7
+        // Lectura: Etiqueta de esta entrega; Room usa esquema 4 y conserva las migraciones anteriores.
+        versionName '2.0-simulacion'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        buildConfigField 'String', 'FIREBASE_API_KEY', quoted('apiKey', '')
+        buildConfigField 'String', 'FIREBASE_APP_ID', quoted('appId', '')
+        buildConfigField 'String', 'FIREBASE_PROJECT_ID', quoted('projectId', '')
+        buildConfigField 'String', 'FIREBASE_DATABASE_URL', quoted('databaseUrl', '')
+        buildConfigField 'String', 'DEVICE_ID', quoted('deviceId', 'pastillero-01')
+        buildConfigField 'String', 'COMMAND_MODE', quoted('commandMode', 'simulation')
+        javaCompileOptions { annotationProcessorOptions { arguments += ['room.schemaLocation': "$projectDir/schemas".toString()] } }
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { coreLibraryDesugaringEnabled true; sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
+    testOptions { unitTests.returnDefaultValues = true }
+    sourceSets { androidTest.assets.srcDirs += files("$projectDir/schemas") }
+}
+// Lectura: Bibliotecas de la app, procesador de Room y herramientas de prueba; Gradle resuelve las versiones
+// Lectura: declaradas.
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    implementation 'androidx.webkit:webkit:1.15.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.10.0'
+    implementation 'androidx.room:room-runtime:2.8.4'
+    annotationProcessor 'androidx.room:room-compiler:2.8.4'
+    implementation 'androidx.work:work-runtime:2.11.2'
+    implementation 'com.google.firebase:firebase-database:22.0.1'
+    implementation 'com.google.firebase:firebase-auth:24.0.1'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20250517'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+}

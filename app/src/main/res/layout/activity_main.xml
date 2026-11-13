@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Contenedor desplazable y punto donde se aplican márgenes de barras del sistema. -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_1"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+        <!-- Estado de conexión, del dispositivo y del borrador. -->
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_2"
+            android:paddingTop="12dp"
+            android:accessibilityLiveRegion="polite" />
+        <!-- Correo de la cuenta responsable; no se precarga un dato privado. -->
+        <EditText
+            android:id="@+id/email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/ui_3"
+            android:inputType="textEmailAddress"
+            android:importantForAutofill="no" />
+        <!-- Entrada protegida visualmente; se vacía después de autenticar. -->
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/ui_4"
+            android:inputType="textPassword"
+            android:importantForAutofill="no" />
+        <!-- Inicia sesión de forma asíncrona. -->
+        <Button
+            android:id="@+id/login"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_5" />
+        <!-- Cierra sesión y conserva el historial local. -->
+        <Button
+            android:id="@+id/logout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_6" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_7"
+            android:textSize="22sp"
+            android:paddingTop="16dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_8" />
+        <!-- Selecciona el compartimento 1, 2 o 3. -->
+        <Spinner
+            android:id="@+id/compartment"
+            android:layout_width="match_parent"
+            android:layout_height="48dp" />
+        <!-- Abre los selectores de fecha y hora. -->
+        <Button
+            android:id="@+id/date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_9" />
+        <!-- Muestra fecha elegida y zona horaria. -->
+        <TextView
+            android:id="@+id/chosen"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <!-- Guarda un horario nuevo en el borrador Room. -->
+        <Button
+            android:id="@+id/add"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_10" />
+        <!-- Muestra los horarios del borrador, no una confirmación física. -->
+        <TextView
+            android:id="@+id/plan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="12dp"
+            android:textIsSelectable="true" />
+        <!-- Relaciona cada etiqueta visible con el UUID del horario. -->
+        <Spinner
+            android:id="@+id/deleteChoice"
+            android:layout_width="match_parent"
+            android:layout_height="48dp" />
+        <!-- Retira un horario del borrador, no borra el historial. -->
+        <Button
+            android:id="@+id/delete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_11" />
+        <!-- Solicita reintentar la sincronización pendiente. -->
+        <Button
+            android:id="@+id/sync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_12" />
+        <!-- Pide confirmar antes de recargar el plan remoto. -->
+        <Button
+            android:id="@+id/remote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_13" />
+        <!-- Comprueba el ESP32 con PING; nunca inicia una entrega. -->
+        <Button
+            android:id="@+id/ping"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_14" />
+        <!-- Muestra solicitudes y resultados separados de las tomas. -->
+        <TextView
+            android:id="@+id/commands"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ui_15"
+            android:textSize="22sp"
+            android:paddingTop="20dp" />
+        <!-- Muestra el historial Room aunque no haya conexión. -->
+        <TextView
+            android:id="@+id/history"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="12dp"
+            android:textIsSelectable="true" />
+    </LinearLayout>
+</ScrollView>

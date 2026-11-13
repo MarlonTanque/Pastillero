@@ -1,0 +1,433 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "devices": {
+      "$device": {
+        ".read": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && (auth.uid === data.child('ownerUid').val() || auth.uid === data.child('deviceUid').val())",
+        "plan": {
+          ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('ownerUid').val() && newData.exists()",
+          ".validate": "newData.hasChildren(['revision','token','targetMode']) && ((!data.exists() && newData.child('revision').val() === 1) || newData.child('revision').val() === data.child('revision').val() + 1) && (!data.exists() || newData.child('targetMode').val() === data.child('targetMode').val() || !data.child('doses').exists())",
+          "revision": {
+            ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > 0 && newData.val() < 2000000000 && ((!data.exists() && newData.val() === 1) || newData.val() === data.val() + 1)"
+          },
+          "token": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9-]{1,36}$/)"
+          },
+          "doses": {
+            ".validate": "newData.hasChildren()",
+            "$dose": {
+              ".validate": "$dose.matches(/^[A-Za-z0-9-]{1,36}$/) && newData.hasChildren(['scheduledAt','compartment']) && (!data.exists() || (newData.child('scheduledAt').val() === data.child('scheduledAt').val() && newData.child('compartment').val() === data.child('compartment').val()))",
+              "scheduledAt": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1700000000000 && newData.val() <= 4102444800000 && (data.exists() || newData.val() > now + 60000)"
+              },
+              "compartment": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 3"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          },
+          "targetMode": {
+            ".validate": "newData.val() === 'simulation' || newData.val() === 'hardware'"
+          }
+        },
+        "events": {
+          ".indexOn": [
+            "actualAt",
+            "scheduledAt"
+          ],
+          "$event": {
+            ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('deviceUid').val() && newData.exists() && (!data.exists() || (newData.child('doseId').val() === data.child('doseId').val() && newData.child('type').val() === data.child('type').val() && newData.child('scheduledAt').val() === data.child('scheduledAt').val() && newData.child('actualAt').val() === data.child('actualAt').val() && newData.child('compartment').val() === data.child('compartment').val() && newData.child('simulation').val() === data.child('simulation').val()))",
+            ".validate": "newData.hasChildren(['doseId','type','scheduledAt','actualAt','compartment','simulation']) && $event === newData.child('doseId').val() + (newData.child('simulation').val() === true ? '-SIM-' : '-') + newData.child('type').val()",
+            "doseId": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9-]{1,36}$/)"
+            },
+            "type": {
+              ".validate": "newData.val() === 'STARTED' || newData.val() === 'CONFIRMED' || newData.val() === 'MISSED' || newData.val() === 'BLOCKED' || newData.val() === 'RECOVERY'"
+            },
+            "scheduledAt": {
+              ".validate": "newData.isNumber() && newData.val() >= 1700000000000 && newData.val() <= 4102444800000"
+            },
+            "actualAt": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+            },
+            "compartment": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 3"
+            },
+            "simulation": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "state": {
+          ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('deviceUid').val() && newData.exists()",
+          ".validate": "newData.hasChildren(['phase','calibrated','appliedRevision','updatedAt','simulation','storageHealthy','blisterPresent'])",
+          "phase": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 8"
+          },
+          "calibrated": {
+            ".validate": "newData.isBoolean()"
+          },
+          "appliedRevision": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+          },
+          "simulation": {
+            ".validate": "newData.isBoolean()"
+          },
+          "storageHealthy": {
+            ".validate": "newData.isBoolean()"
+          },
+          "blisterPresent": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "commandRequests": {
+          ".indexOn": [
+            "requestedAt"
+          ],
+          "$command": {
+            ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('ownerUid').val() && newData.exists() && (!data.exists() || (newData.child('type').val() === data.child('type').val() && newData.child('requestedBy').val() === data.child('requestedBy').val() && newData.child('requestedAt').val() === data.child('requestedAt').val() && newData.child('expiresAt').val() === data.child('expiresAt').val() && newData.child('targetMode').val() === data.child('targetMode').val() && newData.child('planRevision').val() === data.child('planRevision').val()))",
+            ".validate": "$command.matches(/^[A-Za-z0-9-]{1,36}$/) && newData.hasChildren(['type','requestedBy','requestedAt','expiresAt','targetMode','planRevision']) && (newData.child('type').val() === 'PING' ? newData.child('planRevision').val() === 0 : newData.child('planRevision').val() >= 1)",
+            "type": {
+              ".validate": "newData.val() === 'PING' || newData.val() === 'APPLY_PLAN'"
+            },
+            "requestedBy": {
+              ".validate": "newData.val() === auth.uid"
+            },
+            "targetMode": {
+              ".validate": "newData.val() === 'simulation' || newData.val() === 'hardware'"
+            },
+            "planRevision": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() < 2000000000"
+            },
+            "requestedAt": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && (data.exists() || (newData.val() >= now - 60000 && newData.val() <= now + 60000))"
+            },
+            "expiresAt": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > newData.parent().child('requestedAt').val() && newData.val() <= newData.parent().child('requestedAt').val() + 600000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "commandResults": {
+          "$mode": {
+            ".indexOn": [
+              "executedAt"
+            ],
+            "$command": {
+              ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('deviceUid').val() && newData.exists() && (!data.exists() || (newData.child('status').val() === data.child('status').val() && newData.child('reason').val() === data.child('reason').val() && newData.child('requestedAt').val() === data.child('requestedAt').val() && newData.child('executedAt').val() === data.child('executedAt').val() && newData.child('planRevision').val() === data.child('planRevision').val() && newData.child('simulation').val() === data.child('simulation').val()))",
+              ".validate": "newData.hasChildren(['status','reason','requestedAt','executedAt','planRevision','simulation']) && ($mode === 'simulation' || $mode === 'hardware') && root.child('devices').child($device).child('commandRequests').child($command).exists() && root.child('devices').child($device).child('commandRequests').child($command).child('targetMode').val() === $mode && newData.child('requestedAt').val() === root.child('devices').child($device).child('commandRequests').child($command).child('requestedAt').val() && newData.child('simulation').val() === ($mode === 'simulation') && (newData.child('status').val() !== 'COMPLETED' || (newData.child('reason').val() === 'OK' && (root.child('devices').child($device).child('commandRequests').child($command).child('type').val() === 'PING' || newData.child('planRevision').val() >= root.child('devices').child($device).child('commandRequests').child($command).child('planRevision').val())))",
+              "status": {
+                ".validate": "newData.val() === 'COMPLETED' || newData.val() === 'REJECTED'"
+              },
+              "reason": {
+                ".validate": "newData.val() === 'OK' || newData.val() === 'EXPIRED_OR_INVALID_TIME' || newData.val() === 'INVALID_REVISION' || newData.val() === 'UNKNOWN_COMMAND'"
+              },
+              "requestedAt": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0"
+              },
+              "executedAt": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= newData.parent().child('requestedAt').val() - 60000 && newData.val() <= now + 60000"
+              },
+              "planRevision": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() < 2000000000"
+              },
+              "simulation": {
+                ".validate": "newData.isBoolean()"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        },
+        "v2": {
+          "program": {
+            ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('ownerUid').val() && newData.exists()",
+            ".validate": "newData.hasChildren(['version','revision','token','targetMode','positions','settings','windowStart','windowEnd']) && ((!data.exists() && newData.child('revision').val() === 1) || newData.child('revision').val() === data.child('revision').val() + 1) && (!data.exists() || newData.child('targetMode').val() === data.child('targetMode').val() || !data.child('doses').exists())",
+            "version": {
+              ".validate": "newData.val() === 2"
+            },
+            "revision": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > 0 && newData.val() < 2000000000 && ((!data.exists() && newData.val() === 1) || newData.val() === data.val() + 1)"
+            },
+            "token": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9-]{1,36}$/)"
+            },
+            "targetMode": {
+              ".validate": "newData.val() === 'simulation' || newData.val() === 'hardware'"
+            },
+            "positions": {
+              ".validate": "newData.val() === 4 || newData.val() === 5"
+            },
+            "settings": {
+              ".validate": "newData.hasChildren(['positions','horizonDays','pumpDurationMs','ledEnabled','buzzerEnabled','lcdEnabled','exitSensorEnabled','servoEnabled','pumpEnabled'])",
+              "positions": {
+                ".validate": "(newData.val() === 4 || newData.val() === 5) && newData.val() === newData.parent().parent().child('positions').val()"
+              },
+              "horizonDays": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 7"
+              },
+              "pumpDurationMs": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 500 && newData.val() <= 5000"
+              },
+              "$other": {
+                ".validate": false
+              },
+              "ledEnabled": {
+                ".validate": "newData.isBoolean()"
+              },
+              "buzzerEnabled": {
+                ".validate": "newData.isBoolean()"
+              },
+              "lcdEnabled": {
+                ".validate": "newData.isBoolean()"
+              },
+              "exitSensorEnabled": {
+                ".validate": "newData.isBoolean()"
+              },
+              "servoEnabled": {
+                ".validate": "newData.isBoolean()"
+              },
+              "pumpEnabled": {
+                ".validate": "newData.isBoolean()"
+              }
+            },
+            "windowStart": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1700000000000 && newData.val() <= 4102444800000"
+            },
+            "windowEnd": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > newData.parent().child('windowStart').val() && newData.val() - newData.parent().child('windowStart').val() <= 604800000"
+            },
+            "doses": {
+              "$dose": {
+                ".validate": "$dose.matches(/^[A-Za-z0-9-]{1,36}$/) && newData.hasChildren(['scheduledAt','compartment','medicationId']) && (!data.exists() || (newData.child('scheduledAt').val() === data.child('scheduledAt').val() && newData.child('compartment').val() === data.child('compartment').val() && newData.child('medicationId').val() === data.child('medicationId').val()))",
+                "scheduledAt": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1700000000000 && newData.val() <= 4102444800000 && (data.exists() || newData.val() > now + 60000)"
+                },
+                "compartment": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() < newData.parent().parent().parent().child('positions').val() && newData.val() === newData.parent().parent().parent().child('regimens').child(newData.parent().child('medicationId').val()).child('compartment').val()"
+                },
+                "medicationId": {
+                  ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9-]{1,36}$/) && newData.parent().parent().parent().child('regimens').child(newData.val()).exists()"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            },
+            "regimens": {
+              "$med": {
+                ".validate": "$med.matches(/^[A-Za-z0-9-]{1,36}$/) && newData.hasChildren(['id','name','mode','zoneId','compartment','intervalMinutes','startAt','endAt','enabled']) && (newData.child('mode').val() !== 'daily' || newData.child('times').hasChildren())",
+                "id": {
+                  ".validate": "newData.val() === $med"
+                },
+                "name": {
+                  ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
+                },
+                "mode": {
+                  ".validate": "newData.val() === 'daily' || newData.val() === 'interval'"
+                },
+                "zoneId": {
+                  ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
+                },
+                "compartment": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() < newData.parent().parent().parent().child('positions').val()"
+                },
+                "intervalMinutes": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 15 && newData.val() <= 10080"
+                },
+                "startAt": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1700000000000 && newData.val() <= 4102444800000"
+                },
+                "endAt": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && (newData.val() === 0 || (newData.val() > newData.parent().child('startAt').val() && newData.val() <= 4102444800000))"
+                },
+                "enabled": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "times": {
+                  "$time": {
+                    ".validate": "newData.isString() && newData.val().matches(/^([01][0-9]|2[0-3]):[0-5][0-9]$/)"
+                  }
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "events": {
+            ".indexOn": [
+              "actualAt",
+              "scheduledAt"
+            ],
+            "$event": {
+              ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('deviceUid').val() && newData.exists() && (!data.exists() || (newData.child('doseId').val() === data.child('doseId').val() && newData.child('type').val() === data.child('type').val() && newData.child('scheduledAt').val() === data.child('scheduledAt').val() && newData.child('actualAt').val() === data.child('actualAt').val() && newData.child('compartment').val() === data.child('compartment').val() && newData.child('simulation').val() === data.child('simulation').val() && newData.child('medicationId').val() === data.child('medicationId').val()))",
+              ".validate": "newData.hasChildren(['doseId','type','scheduledAt','actualAt','compartment','simulation']) && $event === newData.child('doseId').val() + (newData.child('simulation').val() === true ? '-SIM-' : '-') + newData.child('type').val()",
+              "doseId": {
+                ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9-]{1,36}$/)"
+              },
+              "type": {
+                ".validate": "newData.val() === 'STARTED' || newData.val() === 'CONFIRMED' || newData.val() === 'MISSED' || newData.val() === 'BLOCKED' || newData.val() === 'RECOVERY' || newData.val() === 'NO_EXIT'"
+              },
+              "scheduledAt": {
+                ".validate": "newData.isNumber() && newData.val() >= 1700000000000 && newData.val() <= 4102444800000"
+              },
+              "actualAt": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+              },
+              "compartment": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 4"
+              },
+              "simulation": {
+                ".validate": "newData.isBoolean()"
+              },
+              "$other": {
+                ".validate": false
+              },
+              "medicationId": {
+                ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9-]{0,36}$/)"
+              }
+            }
+          },
+          "state": {
+            ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('deviceUid').val() && newData.exists()",
+            ".validate": "newData.hasChildren(['protocolVersion','positions','phase','calibrated','appliedRevision','updatedAt','simulation','storageHealthy','blisterPresent','exitDetected','pumpActive','servoOpen'])",
+            "phase": {
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 7"
+            },
+            "calibrated": {
+              ".validate": "newData.isBoolean()"
+            },
+            "appliedRevision": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 60000"
+            },
+            "simulation": {
+              ".validate": "newData.isBoolean()"
+            },
+            "storageHealthy": {
+              ".validate": "newData.isBoolean()"
+            },
+            "blisterPresent": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": false
+            },
+            "protocolVersion": {
+              ".validate": "newData.val() === 2"
+            },
+            "positions": {
+              ".validate": "newData.val() === 4 || newData.val() === 5"
+            },
+            "exitDetected": {
+              ".validate": "newData.isBoolean()"
+            },
+            "pumpActive": {
+              ".validate": "newData.isBoolean()"
+            },
+            "servoOpen": {
+              ".validate": "newData.isBoolean()"
+            }
+          },
+          "commandRequests": {
+            ".indexOn": [
+              "requestedAt"
+            ],
+            "$command": {
+              ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('ownerUid').val() && newData.exists() && (!data.exists() || (newData.child('type').val() === data.child('type').val() && newData.child('requestedBy').val() === data.child('requestedBy').val() && newData.child('requestedAt').val() === data.child('requestedAt').val() && newData.child('expiresAt').val() === data.child('expiresAt').val() && newData.child('targetMode').val() === data.child('targetMode').val() && newData.child('planRevision').val() === data.child('planRevision').val()))",
+              ".validate": "$command.matches(/^[A-Za-z0-9-]{1,36}$/) && newData.hasChildren(['type','requestedBy','requestedAt','expiresAt','targetMode','planRevision']) && (newData.child('type').val() === 'PING' ? newData.child('planRevision').val() === 0 : newData.child('planRevision').val() >= 1)",
+              "type": {
+                ".validate": "newData.val() === 'PING' || newData.val() === 'APPLY_PLAN'"
+              },
+              "requestedBy": {
+                ".validate": "newData.val() === auth.uid"
+              },
+              "targetMode": {
+                ".validate": "newData.val() === 'simulation' || newData.val() === 'hardware'"
+              },
+              "planRevision": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() < 2000000000"
+              },
+              "requestedAt": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && (data.exists() || (newData.val() >= now - 60000 && newData.val() <= now + 60000))"
+              },
+              "expiresAt": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() > newData.parent().child('requestedAt').val() && newData.val() <= newData.parent().child('requestedAt').val() + 600000"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "commandResults": {
+            "$mode": {
+              ".indexOn": [
+                "executedAt"
+              ],
+              "$command": {
+                ".write": "auth != null && root.child('access').child('users').child(auth.uid).child('enabled').val() === true && auth.token.auth_time > root.child('access').child('users').child(auth.uid).child('revokedAt').val() && auth.uid === root.child('devices').child($device).child('deviceUid').val() && newData.exists() && (!data.exists() || (newData.child('status').val() === data.child('status').val() && newData.child('reason').val() === data.child('reason').val() && newData.child('requestedAt').val() === data.child('requestedAt').val() && newData.child('executedAt').val() === data.child('executedAt').val() && newData.child('planRevision').val() === data.child('planRevision').val() && newData.child('simulation').val() === data.child('simulation').val()))",
+                ".validate": "newData.hasChildren(['status','reason','requestedAt','executedAt','planRevision','simulation']) && ($mode === 'simulation' || $mode === 'hardware') && root.child('devices').child($device).child('v2').child('commandRequests').child($command).exists() && root.child('devices').child($device).child('v2').child('commandRequests').child($command).child('targetMode').val() === $mode && newData.child('requestedAt').val() === root.child('devices').child($device).child('v2').child('commandRequests').child($command).child('requestedAt').val() && newData.child('simulation').val() === ($mode === 'simulation') && (newData.child('status').val() !== 'COMPLETED' || (newData.child('reason').val() === 'OK' && (root.child('devices').child($device).child('v2').child('commandRequests').child($command).child('type').val() === 'PING' || newData.child('planRevision').val() >= root.child('devices').child($device).child('v2').child('commandRequests').child($command).child('planRevision').val())))",
+                "status": {
+                  ".validate": "newData.val() === 'COMPLETED' || newData.val() === 'REJECTED'"
+                },
+                "reason": {
+                  ".validate": "newData.val() === 'OK' || newData.val() === 'EXPIRED_OR_INVALID_TIME' || newData.val() === 'INVALID_REVISION' || newData.val() === 'UNKNOWN_COMMAND'"
+                },
+                "requestedAt": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0"
+                },
+                "executedAt": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= newData.parent().child('requestedAt').val() - 60000 && newData.val() <= now + 60000"
+                },
+                "planRevision": {
+                  ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() < 2000000000"
+                },
+                "simulation": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "access": {
+      "users": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": false
+        }
+      }
+    }
+  }
+}

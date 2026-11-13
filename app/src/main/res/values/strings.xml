@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:locale="es">
+    <string name="ui_1">Pastillero Badi</string>
+    <string name="ui_2">Historial local disponible</string>
+    <string name="ui_3">Correo del responsable</string>
+    <string name="ui_4">Contraseña</string>
+    <string name="ui_5">Iniciar sesión</string>
+    <string name="ui_6">Cerrar sesión</string>
+    <string name="ui_7">Programar una dosis</string>
+    <string name="ui_8">Cada horario corresponde a una fecha y un compartimento. Se requieren 10 minutos entre dosis. La toma se confirma en el botón físico.</string>
+    <string name="ui_9">Elegir fecha y hora</string>
+    <string name="ui_10">Guardar horario</string>
+    <string name="ui_11">Retirar horario seleccionado</string>
+    <string name="ui_12">Reintentar sincronización</string>
+    <string name="ui_13">Recargar plan de Firebase</string>
+    <string name="ui_14">Comprobar conexión del ESP32</string>
+    <string name="ui_15">Adherencia e historial offline</string>
+    <string name="app_name">Pastillero Badi</string>
+    <string name="compartment_1">Compartimento 1</string>
+    <string name="compartment_2">Compartimento 2</string>
+    <string name="compartment_3">Compartimento 3</string>
+    <string name="history_summary">Confirmadas: %1$d · omitidas: %2$d\nÚltimos 500 eventos locales\n\n%3$s</string>
+    <string name="no_events">Aún no hay eventos recibidos.</string>
+    <string name="status_lines">%1$s\n%2$s\n%3$s</string>
+    <string name="no_date">Sin fecha seleccionada</string>
+    <string name="chosen_date">%1$s · %2$s</string>
+    <string name="draft_status">%1$s · revisión base %2$d</string>
+    <string name="no_schedule">Sin horarios guardados</string>
+    <string name="reload_title">Recargar plan remoto</string>
+    <string name="reload_message">Se reemplazará el borrador local por el plan de Firebase.</string>
+    <string name="reload">Recargar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="commands_empty">Sin comandos solicitados. Destino: %1$s</string>
+    <string name="commands_header">Comandos · destino %1$s\n%2$s</string>
+    <string name="classic_view">Abrir vista clásica de compatibilidad</string>
+    <string name="webview_update">Actualiza Android System WebView para abrir la interfaz 2.0. La vista clásica sigue disponible.</string>
+</resources>

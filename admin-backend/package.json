@@ -1,0 +1,8 @@
+{
+  "name": "pastillero-administration",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test", "start": "node server.mjs" },
+  "dependencies": { "firebase-admin": "13.5.0" },
+  "engines": { "node": ">=22" }
+}

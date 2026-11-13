@@ -1,0 +1,45 @@
+{
+  "project": "PastilleroBadi",
+  "historicalValidation": {
+    "date": "2026-10-22",
+    "softwareCasesPassed": 204,
+    "realRestChecksPassed": 37,
+    "firmwareCompilations": 4,
+    "androidApkBuilt": true,
+    "hardwareUsed": false,
+    "physicalIntegration": "NOT_EXECUTED",
+    "details": "docs/RESULTADOS.md"
+  },
+  "publicationChecks": {
+    "date": "2026-11-13",
+    "casesPassed": 117,
+    "tests": {
+      "privateGeneratorAndImport": 12,
+      "adminBackendDoubles": 12,
+      "firebaseRulesEmulator": 37,
+      "reactUnitAndComponents": 24,
+      "androidJvm": 32
+    },
+    "androidLint": {
+      "errors": 0,
+      "warnings": 1,
+      "warningIds": [
+        "AndroidGradlePluginVersion"
+      ]
+    },
+    "studyGuides": {
+      "files": 111,
+      "nonEmptyLines": 13950,
+      "unexplainedFragments": 0
+    },
+    "firmwareSourceSha256": "d4534e654110f8a512a73750258c4fa55e10fd776e2c5d82a0e61a92bb10b321",
+    "firmwareSourceMatchesOctoberValidatedSource": true,
+    "firmwareRecompiledThisPublication": false,
+    "newPrivateFirmwareNetworkIntegration": "NOT_EXECUTED",
+    "productionFirebaseRulesChanged": false,
+    "hardwareUsed": false,
+    "credentialsMovedFromManualPublicEditsToPrivateConfiguration": true,
+    "privateConfigurationAndBinariesExcluded": true
+  },
+  "scope": "Public sources, templates and educational documentation; local account values and complete logs are excluded"
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La envoltura sigue siendo Android XML; la interfaz React se sirve desde assets propios. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+    android:fitsSystemWindows="true">
+    <TextView android:id="@+id/web_error" android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" />
+    <WebView android:id="@+id/dashboard_web" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+    <Button android:id="@+id/classic_view" android:layout_width="match_parent" android:layout_height="48dp"
+        android:text="@string/classic_view" android:textSize="12sp" android:visibility="gone" />
+</LinearLayout>

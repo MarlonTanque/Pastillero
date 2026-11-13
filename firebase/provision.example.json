@@ -1,0 +1,8 @@
+{
+  "devices": {
+    "pastillero-01": {
+      "ownerUid": "UID_DEL_RESPONSABLE",
+      "deviceUid": "UID_EXCLUSIVO_DEL_ESP32"
+    }
+  }
+}

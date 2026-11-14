@@ -1,3 +1,5 @@
+export type Feature =
+  "medications" | "publish" | "deviceSettings" | "diagnostics";
 export type View = "home" | "calendar" | "medications" | "history" | "settings";
 export interface Medication {
   id: string;
@@ -54,6 +56,8 @@ export interface Snapshot {
   };
   signedIn: boolean;
   authorized: boolean;
+  /** Bloqueos del administrador; una clave ausente significa permitida. */
+  features?: Partial<Record<Feature, boolean>>;
   simulation: boolean;
   connection: string;
   programStatus: string;

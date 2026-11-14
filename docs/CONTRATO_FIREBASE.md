@@ -179,6 +179,8 @@ Referencias oficiales: [reglas y autenticación](https://firebase.google.com/doc
 
 Cada acceso a un dispositivo requiere UID vinculado, `access/users/<uid>/enabled=true` y `auth.token.auth_time > revokedAt`. `revokedAt` se mide en segundos Unix; las fechas de dosis/eventos siguen en milisegundos. Solo el servidor administrativo o Firebase Console modifica los permisos y los vínculos. El cliente puede leer únicamente su propio registro de acceso, incluso si está bloqueado, para mostrar el motivo. Una cuenta ordinaria no puede administrar usuarios, leer todo `devices` ni consultar `administration`.
 
+El registro admite además `features` opcional (`medications`, `publish`, `deviceSettings`, `diagnostics`, booleanos) escrito solo por el backend administrativo. Un `false` bloquea esa funcionalidad en la app del responsable; ausencia equivale a permitido. Las reglas no lo evalúan: ver ADMINISTRACION_WEB.md.
+
 El backend reservado al dashboard verifica el UID principal y el custom claim `dashboardAdmin`, así como la revocación de la sesión. El SDK Admin opera en el servidor; los clientes web no reciben privilegios de base globales. API, auditoría, protección del administrador y activación pendiente: `ADMINISTRACION_WEB.md`. No se ha desarrollado React.
 
 

@@ -21,6 +21,7 @@ import {
 import {
   defaults,
   type Action,
+  type Feature,
   type Medication,
   type Occurrence,
   type Settings,
@@ -45,6 +46,7 @@ const statusNames: Record<string, string> = {
   PROGRAMADA: "Programada",
   SIN_REGISTRO: "Sin registro",
 };
+const BLOCKED = "Función deshabilitada por el administrador";
 const route = (): View =>
   nav.find((x) => `#/${x.id}` === location.hash)?.id || "home";
 
@@ -468,6 +470,7 @@ export function App() {
   const today =
     data?.occurrences.filter((x) => dayKey(x.scheduledAt) === dayKey(now)) ||
     [];
+  const can = (feature: Feature) => data?.features?.[feature] !== false;
   const freshness =
     data?.device.updatedAt && now - data.device.updatedAt < 30000;
   const navTo = (id: View) => {
@@ -609,7 +612,7 @@ export function App() {
                       : "Preferencias del pastillero y de sus avisos."}
             </p>
           </div>
-          {view !== "settings" && view !== "history" && (
+          {view !== "settings" && view !== "history" && can("medications") && (
             <button className="primary" onClick={() => setEditing(null)}>
               <Icon name="plus" size={19} />
               Agregar medicamento
@@ -733,12 +736,14 @@ export function App() {
                 <div className="empty-inline">
                   <Icon name="calendar" size={32} />
                   <p>No hay dosis programadas para hoy.</p>
-                  <button
-                    className="text-button"
-                    onClick={() => setEditing(null)}
-                  >
-                    Crear una pauta
-                  </button>
+                  {can("medications") && (
+                    <button
+                      className="text-button"
+                      onClick={() => setEditing(null)}
+                    >
+                      Crear una pauta
+                    </button>
+                  )}
                 </div>
               )}
             </section>
@@ -862,19 +867,24 @@ export function App() {
                 <small className="muted">
                   Desde {fullDate(m.startAt)} · {m.zoneId}
                 </small>
-                <div className="med-actions">
-                  <button className="text-button" onClick={() => setEditing(m)}>
-                    <Icon name="edit" size={16} />
-                    Editar pauta
-                  </button>
-                  <button
-                    className="icon-button danger"
-                    aria-label={`Eliminar ${m.name}`}
-                    onClick={() => setDeleting(m)}
-                  >
-                    <Icon name="trash" size={18} />
-                  </button>
-                </div>
+                {can("medications") && (
+                  <div className="med-actions">
+                    <button
+                      className="text-button"
+                      onClick={() => setEditing(m)}
+                    >
+                      <Icon name="edit" size={16} />
+                      Editar pauta
+                    </button>
+                    <button
+                      className="icon-button danger"
+                      aria-label={`Eliminar ${m.name}`}
+                      onClick={() => setDeleting(m)}
+                    >
+                      <Icon name="trash" size={18} />
+                    </button>
+                  </div>
+                )}
               </article>
             ))}
             {!data.medications.length && (
@@ -886,10 +896,12 @@ export function App() {
                 <p>
                   Agrega tu primer medicamento y define sus propios horarios.
                 </p>
-                <button className="primary" onClick={() => setEditing(null)}>
-                  <Icon name="plus" size={18} />
-                  Agregar medicamento
-                </button>
+                {can("medications") && (
+                  <button className="primary" onClick={() => setEditing(null)}>
+                    <Icon name="plus" size={18} />
+                    Agregar medicamento
+                  </button>
+                )}
               </section>
             )}
           </div>
@@ -1075,9 +1087,10 @@ export function App() {
                   />
                 </label>
               )}
+              {!can("deviceSettings") && <p className="help">{BLOCKED}</p>}
               <button
                 className="primary"
-                disabled={busy}
+                disabled={busy || !can("deviceSettings")}
                 onClick={() =>
                   doAction(
                     "savePreferences",
@@ -1119,25 +1132,31 @@ export function App() {
                 </strong>
               </div>
               <p className="help">{data.programStatus}</p>
-              <button
-                className="secondary"
-                onClick={() =>
-                  doAction(
-                    "ping",
-                    {},
-                    "Comprobación guardada; esperando respuesta",
-                  )
-                }
-              >
-                Comprobar conexión
-              </button>
-              <p className="help">{data.pingStatus || "Sin solicitudes"}</p>
-              <button
-                className="secondary"
-                onClick={() => doAction("retry", {}, "Reintento solicitado")}
-              >
-                Reintentar sincronización
-              </button>
+              {can("diagnostics") && (
+                <>
+                  <button
+                    className="secondary"
+                    onClick={() =>
+                      doAction(
+                        "ping",
+                        {},
+                        "Comprobación guardada; esperando respuesta",
+                      )
+                    }
+                  >
+                    Comprobar conexión
+                  </button>
+                  <p className="help">{data.pingStatus || "Sin solicitudes"}</p>
+                </>
+              )}
+              {can("publish") && (
+                <button
+                  className="secondary"
+                  onClick={() => doAction("retry", {}, "Reintento solicitado")}
+                >
+                  Reintentar sincronización
+                </button>
+              )}
               <button
                 className="text-button"
                 onClick={() =>
@@ -1146,15 +1165,17 @@ export function App() {
               >
                 {data.signedIn ? "Cerrar sesión" : "Entrar a mi cuenta"}
               </button>
+              {can("diagnostics") && (
+                <button
+                  className="text-button"
+                  onClick={() => doAction("nativeView", {}, "")}
+                >
+                  Abrir vista clásica
+                </button>
+              )}
               <button
                 className="text-button"
-                onClick={() => doAction("nativeView", {}, "")}
-              >
-                Abrir vista clásica
-              </button>
-              <button
-                className="text-button"
-                disabled={!data.authorized || busy}
+                disabled={!data.authorized || busy || !can("publish")}
                 onClick={() => setReconciling(true)}
               >
                 Revisar programa remoto
@@ -1171,12 +1192,12 @@ export function App() {
                   ? "Tienes cambios pendientes"
                   : "Tu programación, en orden"}
               </strong>
-              <small>{data.programStatus}</small>
+              <small>{can("publish") ? data.programStatus : BLOCKED}</small>
             </div>
           </div>
           <button
             className="primary"
-            disabled={busy}
+            disabled={busy || !can("publish")}
             onClick={() =>
               doAction(
                 "publish",

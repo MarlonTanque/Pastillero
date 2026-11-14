@@ -125,6 +125,8 @@ public final class DashboardRepository implements AutoCloseable {
                     return;
                 if (!action.equals("snapshot"))
                     canEdit();
+                if (!legacy.isFeatureAllowed(Features.forAction(action)))
+                    throw new SecurityException(Features.BLOCKED);
                 switch (action) {
                     case "saveMedication": {
                         Medication m = BridgeProtocol.medication(
@@ -286,6 +288,7 @@ public final class DashboardRepository implements AutoCloseable {
             .put("device", deviceState)
             .put("signedIn", legacy.uid != null)
             .put("authorized", legacy.isAuthorized())
+            .put("features", Features.json(legacy.features()))
             .put("simulation", true)
             .put("connection", String.valueOf(legacy.connection.getValue()))
             .put("programStatus", p == null ? "Aún no hay plan V2 publicado" : p.status)

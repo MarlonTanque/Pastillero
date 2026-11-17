@@ -55,3 +55,29 @@ test('user listing omits privileged claims and password material',async()=>{
   assert.equal(JSON.stringify(data).includes('password'),false);assert.equal(JSON.stringify(data).includes('customClaims'),false);
 });
 test('backend fails closed without a configured protected administrator',()=>{assert.throws(()=>new AccessService({auth:{},store:{},protectedAdminUid:''}));});
+test('administrator blocks and restores individual app features with audit',async()=>{
+  const {service,rows,audit,calls}=fixture();
+  await service.changeFeatures('admin','owner',{features:{publish:false,diagnostics:false},expectedVersion:1});
+  assert.deepEqual(rows.owner.features,{publish:false,diagnostics:false});assert.equal(rows.owner.version,2);assert.equal(rows.owner.enabled,true);
+  await service.changeFeatures('admin','owner',{features:{publish:true},expectedVersion:2});
+  assert.deepEqual(rows.owner.features,{publish:true,diagnostics:false});assert.equal(rows.owner.role,'owner');
+  assert.equal(audit.length,2);assert.equal(audit[0].stage,'features-applied');assert.deepEqual(calls,[]);
+});
+test('feature changes require the administrator and the current version',async()=>{
+  const {service,rows}=fixture();
+  await assert.rejects(()=>service.changeFeatures('owner','owner',{features:{publish:false},expectedVersion:1}),{status:403});
+  await assert.rejects(()=>service.changeFeatures('admin','owner',{features:{publish:false},expectedVersion:5}),{status:409});
+  assert.equal(rows.owner.features,undefined);
+});
+test('feature changes reject unknown features, non-booleans and extra fields',async()=>{
+  const {service}=fixture();
+  for(const body of [{features:{admin:true},expectedVersion:1},{features:{publish:'false'},expectedVersion:1},{features:{},expectedVersion:1},
+    {features:[],expectedVersion:1},{features:{publish:false},expectedVersion:1,enabled:true},{features:{publish:false}}])
+    await assert.rejects(()=>service.changeFeatures('admin','owner',body),{status:400});
+});
+test('features apply only to ordinary owner accounts',async()=>{
+  const {service}=fixture();
+  await assert.rejects(()=>service.changeFeatures('admin','device',{features:{publish:false},expectedVersion:1}),{status:409});
+  for(const uid of ['primary','secondary']) await assert.rejects(()=>service.changeFeatures('admin',uid,{features:{publish:false},expectedVersion:1}),{status:409});
+  await assert.rejects(()=>service.changeFeatures('admin','unknown',{features:{publish:false},expectedVersion:1}),{status:404});
+});

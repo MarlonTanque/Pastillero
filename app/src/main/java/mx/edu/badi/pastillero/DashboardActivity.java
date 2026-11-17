@@ -126,6 +126,10 @@ public class DashboardActivity extends AppCompatActivity {
                         }
                         if (action.equals("nativeView")) {
                             BridgeProtocol.keys(payload);
+                            if (!repo.legacy.isFeatureAllowed(Features.DIAGNOSTICS)) {
+                                sendReply(reply, response(id, false, null, Features.BLOCKED));
+                                return;
+                            }
                             startActivity(new Intent(this, MainActivity.class));
                             sendReply(reply, response(id, true, new JSONObject(), null));
                             return;
@@ -152,6 +156,7 @@ public class DashboardActivity extends AppCompatActivity {
             pushSnapshot();
         });
         repo.changes.observe(this, value -> pushSnapshot());
+        repo.legacy.featureChanges.observe(this, value -> pushSnapshot());
         repo.legacy.dao.observeProgram(repo.legacy.scope).observe(this, value -> pushSnapshot());
         repo.legacy.dao.observeEvents(repo.legacy.scope).observe(this, value -> pushSnapshot());
     }

@@ -1,5 +1,8 @@
 import {createServer} from 'node:http';
 import {readFileSync} from 'node:fs';
+import {readFile} from 'node:fs/promises';
+import {extname,normalize,sep} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {initializeApp,applicationDefault} from 'firebase-admin/app';
 import {getAuth} from 'firebase-admin/auth';
 import {getDatabase} from 'firebase-admin/database';
@@ -33,6 +36,20 @@ async function bodyJson(request) {
   }
   try {return JSON.parse(body);} catch {throw new ApiError(400,'INVALID_JSON');}
 }
+// The built administration dashboard (dashboard-web/dist) is served from this same origin.
+const dashboardRoot=fileURLToPath(new URL('../dashboard-web/dist/',import.meta.url));
+const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.woff2':'font/woff2'};
+async function serveDashboard(request,response) {
+  let path;
+  try {path=decodeURIComponent(new URL(request.url,'http://localhost').pathname);} catch {throw new ApiError(400,'INVALID_PATH');}
+  const file=normalize(dashboardRoot+(path==='/'?'index.html':path.slice(1)));
+  if(!file.startsWith(dashboardRoot) || file.includes(sep+'.')) throw new ApiError(404,'NOT_FOUND');
+  let body;
+  try {body=await readFile(file);} catch {throw new ApiError(404,'NOT_FOUND');}
+  response.setHeader('Content-Type',types[extname(file)]??'application/octet-stream');
+  response.setHeader('Content-Security-Policy',"default-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'");
+  response.end(body);
+}
 const server=createServer(async(request,response)=>{
   response.setHeader('Cache-Control','no-store');
   response.setHeader('X-Content-Type-Options','nosniff');
@@ -40,6 +57,7 @@ const server=createServer(async(request,response)=>{
   try {
     // Future web frontend is served on the same origin. No permissive CORS/cookies.
     if(request.headers.origin && request.headers.origin!==config.origin) throw new ApiError(403,'ORIGIN_DENIED');
+    if(request.method==='GET' && !request.url.startsWith('/api/')) return await serveDashboard(request,response);
     const header=request.headers.authorization??'';
     if(!header.startsWith('Bearer ') || header.length>8192) throw new ApiError(401,'BEARER_REQUIRED');
     const token=header.slice(7), url=new URL(request.url,'http://localhost');
@@ -50,6 +68,9 @@ const server=createServer(async(request,response)=>{
       // Authenticate before accepting/parsing a mutation payload.
       await service.authorize(token);
       result=await service.changeAccess(token,url.pathname.split('/')[3],await bodyJson(request));
+    } else if(request.method==='PATCH' && /^\/api\/users\/[A-Za-z0-9_-]{1,128}\/features$/.test(url.pathname)) {
+      await service.authorize(token);
+      result=await service.changeFeatures(token,url.pathname.split('/')[3],await bodyJson(request));
     } else throw new ApiError(404,'NOT_FOUND');
     response.end(JSON.stringify(result));
   } catch(error) {
@@ -58,4 +79,4 @@ const server=createServer(async(request,response)=>{
   }
 });
 server.requestTimeout=15000;server.headersTimeout=10000;
-server.listen(8787,'127.0.0.1',()=>console.log('Administration API listening on loopback; no hardware commands'));
+server.listen(8787,'127.0.0.1',()=>console.log('Administration API and dashboard on http://127.0.0.1:8787; no hardware commands'));

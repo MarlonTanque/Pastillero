@@ -196,3 +196,28 @@ it("la reconciliación conserva pautas locales solo tras elegir esa opción", as
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
   );
 });
+it("oculta las funciones que el administrador deshabilitó", async () => {
+  localStorage.setItem(
+    "badi-preview",
+    JSON.stringify({
+      ...preview("snapshot", {}),
+      features: { medications: false, publish: false, diagnostics: false },
+    }),
+  );
+  location.hash = "/medications";
+  await start();
+  expect(
+    screen.queryByRole("button", { name: "Agregar medicamento" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: /Validar plan local/ }),
+  ).toBeDisabled();
+  location.hash = "/settings";
+  await act(async () =>
+    window.dispatchEvent(new HashChangeEvent("hashchange")),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Comprobar conexión" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Guardar ajustes" })).toBeEnabled();
+});

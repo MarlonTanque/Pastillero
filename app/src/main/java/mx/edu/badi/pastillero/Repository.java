@@ -13,6 +13,8 @@ public class Repository implements AutoCloseable {
         new MutableLiveData<>("Modo local · sin publicar al ESP32");
     public final MutableLiveData<String> deviceState =
         new MutableLiveData<>("Estado del dispositivo no disponible");
+    // Lectura: Avisa a la interfaz cuando el administrador cambia las funcionalidades permitidas.
+    public final MutableLiveData<Long> featureChanges = new MutableLiveData<>(0L);
     public final String scope, uid;
     public final PastilleroDao dao;
     private final Context context;
@@ -25,6 +27,7 @@ public class Repository implements AutoCloseable {
     private volatile boolean closed;
     private volatile boolean authorized;
     private volatile boolean accessAllowed;
+    private volatile Map<String, Boolean> features = Collections.emptyMap();
     private DataSnapshot lastState;
     private final android.os.Handler timer =
         new android.os.Handler(android.os.Looper.getMainLooper());
@@ -75,6 +78,9 @@ public class Repository implements AutoCloseable {
                     return;
                 accessAllowed =
                     Boolean.TRUE.equals(record.child("enabled").getValue(Boolean.class));
+                Object raw = record.child("features").getValue();
+                features = Features.parse(raw instanceof Map ? (Map<?, ?>) raw : null);
+                featureChanges.postValue(System.nanoTime());
                 if (!accessAllowed) {
                     denyAccess();
                     return;
@@ -257,6 +263,8 @@ public class Repository implements AutoCloseable {
     }
     // El diálogo de MainActivity pidió sustituir el borrador por la versión remota; force=true lo permite.
     public void reloadRemote() {
+        if (!allows(Features.PUBLISH))
+            return;
         if (root == null || !authorized) {
             connection.setValue(
                 "Configura Firebase e inicia sesión con el responsable vinculado para recargar");
@@ -270,6 +278,8 @@ public class Repository implements AutoCloseable {
     }
     // Exige una fecha al menos un minuto futura y crea un ID nuevo solo para esta nueva dosis.
     public void add(long at, int compartment) {
+        if (!allows(Features.MEDICATIONS))
+            return;
         mutate(json -> {
             if (at < System.currentTimeMillis() + 60000)
                 throw new IllegalArgumentException(
@@ -282,6 +292,8 @@ public class Repository implements AutoCloseable {
     }
     // Edita únicamente el plan: no elimina eventos históricos ni reservas del ESP32.
     public void remove(String id) {
+        if (!allows(Features.MEDICATIONS))
+            return;
         mutate(json -> json.remove(id));
     }
     interface Edit {
@@ -329,6 +341,8 @@ public class Repository implements AutoCloseable {
     }
     // Lectura: Con sesión autorizada crea una solicitud PING durable; el resultado llegará por otro listener.
     public void ping() {
+        if (!allows(Features.DIAGNOSTICS))
+            return;
         if (uid == null || !authorized) {
             connection.setValue(
                 "Inicia sesión con el responsable vinculado para comprobar el ESP32");
@@ -344,11 +358,22 @@ public class Repository implements AutoCloseable {
     }
     // Lectura: Reanuda las dos colas persistentes sin fabricar nuevas dosis ni nuevos IDs de comandos ya guardados.
     public void retry() {
+        if (!allows(Features.PUBLISH))
+            return;
         if (uid != null && authorized) {
             SyncWorker.enqueue(context, uid);
             CommandWorker.enqueue(context, uid);
         }
     }
+    // Lectura: Consulta el permiso por funcionalidad; si está bloqueada lo informa en la vista clásica.
+    public boolean allows(String feature) {
+        if (Features.allowed(features, feature))
+            return true;
+        connection.postValue(Features.BLOCKED);
+        return false;
+    }
+    public boolean isFeatureAllowed(String feature) { return Features.allowed(features, feature); }
+    public Map<String, Boolean> features() { return features; }
     // Lectura: Marca el repositorio cerrado, retira callbacks y deja terminar el ejecutor sin borrar la base.
     public boolean isAuthorized() { return uid != null && authorized && !closed; }
     public void close() {

@@ -2,7 +2,7 @@
 
 Proyecto ISC0633. Raíz para Android Studio: `C:\Users\milit\AndroidStudioProjects\PastilleroBadi`.
 
-Repositorio del equipo: [MarlonTanque/Pastillero](https://github.com/MarlonTanque/Pastillero). Para clonar, configurar Android/ESP32 y continuar el dashboard web, empezar por [COLABORACION_GITHUB.md](docs/COLABORACION_GITHUB.md). El React actual está integrado en el APK; en navegador usa demostración local. La web administrativa independiente sigue pendiente.
+Repositorio del equipo: [MarlonTanque/Pastillero](https://github.com/MarlonTanque/Pastillero). Para clonar, configurar Android/ESP32 y continuar el dashboard web, empezar por [COLABORACION_GITHUB.md](docs/COLABORACION_GITHUB.md). El React actual está integrado en el APK; en navegador usa demostración local. El panel administrativo vive en [`dashboard-web/`](dashboard-web/README.md): permisos por cuenta y por funcionalidad de la app, servido por `admin-backend/`.
 
 Este repositorio publica fuentes y plantillas. La configuración local, credenciales, respaldos, registros completos y entregables compilados permanecen excluidos; las rutas a releases/archives/private que aparecen en informes históricos describen el equipo original.
 

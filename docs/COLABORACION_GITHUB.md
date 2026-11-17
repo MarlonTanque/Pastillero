@@ -27,7 +27,7 @@ Abrir la carpeta raíz `PastilleroBadi` en Android Studio, no solo `app/`. Ardui
 
 No se distribuyen `private/`, configuración personal de Firebase, bibliotecas instaladas, respaldos, registros completos ni APK/binarios. Permanecen en el equipo original.
 
-## React actual y sitio web pendiente
+## React actual y dashboard administrativo
 
 `web/src/bridge.ts` usa `window.BadiNative` dentro del WebView. En un navegador normal cae en `preview.ts` y localStorage: es una demostración, no sincronización real con Firebase ni historial Room del teléfono.
 
@@ -41,9 +41,9 @@ npm run dev
 
 Abrir http://127.0.0.1:4173. `npm run build` valida TypeScript y genera recursos dentro de `app/src/main/assets/dashboard/`; esos cambios afectan la interfaz del APK y deben revisarse junto con Java. `npm test` ejecuta las pruebas React. Para las pruebas de navegador, instalar primero `npx playwright install chromium` y ejecutar `npm run test:e2e`.
 
-El dashboard web independiente puede desarrollarse en una carpeta nueva `dashboard-web/`, conservando el frontend móvil. Debe reutilizar el contrato de `docs/CONTRATO_FIREBASE.md`, la geometría de cinco espacios, fechas UTC/zonas IANA e identificadores estables. No copiar la lógica de demostración como si fuera un cliente de producción.
+El dashboard administrativo independiente está en `dashboard-web/` (React + Vite); sin configuración de Firebase abre una demostración con datos ficticios. Ver `dashboard-web/README.md`. Debe reutilizar el contrato de `docs/CONTRATO_FIREBASE.md`, la geometría de cinco espacios, fechas UTC/zonas IANA e identificadores estables. No copiar la lógica de demostración como si fuera un cliente de producción.
 
-La web necesita autenticación Firebase propia. Una cuenta ordinaria solo accede al dispositivo vinculado y habilitado según las reglas. Las operaciones de administración de usuarios pasan por el backend confiable, nunca por credenciales administrativas en React. Consultar `docs/ADMINISTRACION_WEB.md` para `GET /api/users`, `GET /api/devices` y `PATCH /api/users/<uid>/access`, control de versiones, token y administrador protegido. Su activación con ADC y cuenta dedicada sigue pendiente; no ejecutar `bootstrap-admin.mjs` como parte de instalar el proyecto.
+La web necesita autenticación Firebase propia. Una cuenta ordinaria solo accede al dispositivo vinculado y habilitado según las reglas. Las operaciones de administración de usuarios pasan por el backend confiable, nunca por credenciales administrativas en React. Consultar `docs/ADMINISTRACION_WEB.md` para `GET /api/users`, `GET /api/devices`, `PATCH /api/users/<uid>/access` y `PATCH /api/users/<uid>/features`, control de versiones, token y administrador protegido. Su activación con ADC y cuenta dedicada sigue pendiente; no ejecutar `bootstrap-admin.mjs` como parte de instalar el proyecto.
 
 ## Configuración Android local
 

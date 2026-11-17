@@ -49,3 +49,6 @@ web/playwright-report/
 **/service-account*.json
 **/serviceAccount*.json
 **/credentials*.json
+
+dashboard-web/node_modules/
+dashboard-web/dist/

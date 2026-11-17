@@ -80,7 +80,8 @@ export const errorNames: Record<string, string> = {
 export function relative(ms?: number, now = Date.now()): string {
   if (!ms) return "nunca";
   const s = Math.round((now - ms) / 1000);
-  if (s < 60) return "hace segundos";
+  if (s < 10) return "hace segundos";
+  if (s < 60) return `hace ${s} s`;
   if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
   if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
   return new Date(ms).toLocaleString("es-MX", {

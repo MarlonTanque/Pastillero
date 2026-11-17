@@ -45,6 +45,9 @@ export interface DeviceState {
   simulation?: boolean;
   storageHealthy?: boolean;
   blisterPresent?: boolean;
+  exitDetected?: boolean;
+  pumpActive?: boolean;
+  servoOpen?: boolean;
   positions?: number;
 }
 export interface Device {

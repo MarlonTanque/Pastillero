@@ -1,7 +1,13 @@
 import type { AccessRecord, AdminUser, Devices, Feature } from "./types";
 
+/** Escenarios que la demostración puede provocar para mostrar las alertas. */
+export type SimKind =
+  "deliver" | "missed" | "blister" | "failure" | "offline" | "restore";
+
 /** Operaciones del backend administrativo (docs/ADMINISTRACION_WEB.md). */
 export interface AdminApi {
+  /** Solo en demostración: altera el pastillero ficticio. */
+  simulate?(kind: SimKind): void;
   readonly demo: boolean;
   email(): string | null;
   signIn(email: string, password: string): Promise<void>;

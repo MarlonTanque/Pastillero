@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ApiError, type AdminApi } from "./api";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import { ApiError, type AdminApi, type SimKind } from "./api";
+import { OFFLINE_MS, type Alert, type Severity } from "./alerts";
 import {
   FEATURES,
   errorNames,
@@ -7,6 +14,7 @@ import {
   phaseName,
   relative,
 } from "./labels";
+import { loadMuted, saveMuted, sounds } from "./sound";
 import type {
   AccessRecord,
   AdminUser,
@@ -14,8 +22,9 @@ import type {
   Devices,
   Feature,
 } from "./types";
+import { useAlerts } from "./useAlerts";
 
-type Tab = "users" | "devices";
+type Tab = "users" | "devices" | "alerts";
 const roleNames = { owner: "Responsable (app)", device: "Pastillero (ESP32)" };
 const message = (e: unknown) =>
   e instanceof ApiError
@@ -37,6 +46,8 @@ function Login({ api }: { api: AdminApi }) {
     [busy, setBusy] = useState(false);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    // El clic de inicio de sesión habilita el audio para las alarmas posteriores.
+    sounds.unlock();
     setBusy(true);
     setError("");
     try {
@@ -106,32 +117,76 @@ function Login({ api }: { api: AdminApi }) {
   );
 }
 
+const POLL_MS = 5000;
+const severityNames: Record<Severity, string> = {
+  critical: "Crítica",
+  warning: "Advertencia",
+  info: "Aviso",
+  success: "Confirmación",
+};
+const severityIcons: Record<Severity, string> = {
+  critical: "⛔",
+  warning: "⚠️",
+  info: "ℹ️",
+  success: "✅",
+};
+const time = (ms: number) =>
+  new Date(ms).toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
 function Dashboard({ api }: { api: AdminApi }) {
   const [tab, setTab] = useState<Tab>("users"),
     [users, setUsers] = useState<AdminUser[]>(),
     [devices, setDevices] = useState<Devices>({}),
-    [error, setError] = useState(""),
-    [toast, setToast] = useState("");
+    [loadError, setLoadError] = useState(""),
+    [lastUpdate, setLastUpdate] = useState<number>(),
+    [online, setOnline] = useState(true),
+    [now, setNow] = useState(Date.now()),
+    [muted, setMuted] = useState(loadMuted);
+  const alerts = useAlerts(muted);
+  const { ingest } = alerts;
+  const latest = useRef<Devices>({});
+  // Lectura en vivo: consulta el backend cada cinco segundos y evalúa sensores y eventos nuevos.
   const load = useCallback(async () => {
-    setError("");
     try {
       const [u, d] = await Promise.all([api.listUsers(), api.devices()]);
+      latest.current = d;
       setUsers(u);
       setDevices(d);
+      setLastUpdate(Date.now());
+      setOnline(true);
+      setLoadError("");
+      ingest(d, Date.now());
     } catch (e) {
-      setError(message(e));
-      if (e instanceof ApiError && e.status === 401) await api.signOut();
+      if (e instanceof ApiError && e.status === 401)
+        return void (await api.signOut());
+      setOnline(false);
+      setLoadError(message(e));
+      ingest(latest.current, Date.now(), [
+        {
+          id: "system:backend",
+          severity: "critical",
+          title: "Sin conexión con el backend",
+          detail: message(e),
+          at: Date.now(),
+          source: "system",
+        },
+      ]);
     }
-  }, [api]);
+  }, [api, ingest]);
   useEffect(() => {
     void load();
+    const poll = setInterval(() => void load(), POLL_MS),
+      tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      clearInterval(poll);
+      clearInterval(tick);
+    };
   }, [load]);
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(""), 2600);
-    return () => clearTimeout(t);
-  }, [toast]);
-  // Aplica un cambio del backend; ante conflicto de versión recarga para mostrar la decisión vigente.
+  // Aplica un cambio del backend y confirma en pantalla y con sonido; ante conflicto recarga.
   const apply = async (
     uid: string,
     change: () => Promise<AccessRecord>,
@@ -144,72 +199,233 @@ function Dashboard({ api }: { api: AdminApi }) {
           u.uid === uid ? { ...u, access, disabled: !access.enabled } : u,
         ),
       );
-      setToast(done);
+      alerts.command("success", "Comando confirmado", done);
     } catch (e) {
-      setError(message(e));
+      alerts.command("warning", "Comando rechazado", message(e));
       if (e instanceof ApiError && e.code === "VERSION_CONFLICT") await load();
     }
   };
+  const toggleSound = () => {
+    sounds.unlock();
+    setMuted((m) => {
+      saveMuted(!m);
+      if (m) sounds.success();
+      return !m;
+    });
+  };
   const emailOf = (uid?: string) =>
     users?.find((u) => u.uid === uid)?.email ?? uid ?? "—";
+  const top = alerts.pending[0];
+  const tabs: [Tab, string][] = [
+    ["users", "Usuarios y permisos"],
+    ["devices", "Dispositivos"],
+    ["alerts", "Alertas"],
+  ];
   return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            💊
-          </span>
-          <strong>Badi · Administración</strong>
-          {api.demo && <span className="chip warn">Demostración</span>}
-        </div>
-        <nav className="tabs" aria-label="Secciones">
-          {(["users", "devices"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              className={tab === t ? "tab active" : "tab"}
-              aria-pressed={tab === t}
-              onClick={() => setTab(t)}
+    <div className={`shell ${alerts.alarming ? "alarming" : ""}`}>
+      <div className="sticky">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true">
+              💊
+            </span>
+            <strong>Badi · Administración</strong>
+            {api.demo && <span className="chip warn">Demostración</span>}
+          </div>
+          <nav className="tabs" aria-label="Secciones">
+            {tabs.map(([t, label]) => (
+              <button
+                key={t}
+                className={tab === t ? "tab active" : "tab"}
+                aria-pressed={tab === t}
+                onClick={() => setTab(t)}
+              >
+                {label}
+                {t === "alerts" && alerts.pending.length > 0 && (
+                  <span
+                    className={`count ${alerts.alarming ? "critical" : "warning"}`}
+                    aria-label={`${alerts.pending.length} sin reconocer`}
+                  >
+                    {alerts.pending.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+          <div className="row">
+            <span
+              className={`live ${online ? "on" : "off"}`}
+              title="Actualización automática cada 5 s"
             >
-              {t === "users" ? "Usuarios y permisos" : "Dispositivos"}
+              <span className="live-dot" aria-hidden="true" />
+              {online
+                ? `En vivo · ${lastUpdate ? relative(lastUpdate, now) : "conectando"}`
+                : "Sin conexión"}
+            </span>
+            <button
+              className="ghost icon"
+              aria-pressed={!muted}
+              aria-label={
+                muted ? "Activar sonido de alarmas" : "Silenciar alarmas"
+              }
+              title={muted ? "Sonido desactivado" : "Sonido activado"}
+              onClick={toggleSound}
+            >
+              {muted ? "🔇" : "🔊"}
             </button>
-          ))}
-        </nav>
-        <div className="row">
-          <span className="muted small">{api.email()}</span>
-          <button className="ghost" onClick={() => void load()}>
-            Actualizar
-          </button>
-          <button className="ghost" onClick={() => void api.signOut()}>
-            Cerrar sesión
-          </button>
-        </div>
-      </header>
+            <span className="muted small">{api.email()}</span>
+            <button className="ghost" onClick={() => void load()}>
+              Actualizar
+            </button>
+            <button className="ghost" onClick={() => void api.signOut()}>
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
+        {top && (
+          <div className={`alarm-banner ${top.severity}`} role="alert">
+            <span className="alarm-icon" aria-hidden="true">
+              {severityIcons[top.severity]}
+            </span>
+            <div className="alarm-text">
+              <strong>{top.title}</strong>
+              <span>
+                {top.deviceId ? `${top.deviceId} · ` : ""}
+                {top.detail}
+              </span>
+            </div>
+            {alerts.pending.length > 1 && (
+              <span className="chip">+{alerts.pending.length - 1} más</span>
+            )}
+            <button onClick={() => alerts.ack(top.id)}>Reconocer</button>
+            {tab !== "alerts" && (
+              <button className="ghost" onClick={() => setTab("alerts")}>
+                Ver alertas
+              </button>
+            )}
+          </div>
+        )}
+      </div>
       <main className="content">
-        {error && (
-          <p className="error banner" role="alert">
-            {error}
+        {!users ? (
+          <p className={loadError ? "error" : "muted"}>
+            {loadError || "Cargando datos del backend…"}
+          </p>
+        ) : tab === "users" ? (
+          <UsersView users={users} apply={apply} api={api} />
+        ) : tab === "devices" ? (
+          <DevicesView
+            devices={devices}
+            emailOf={emailOf}
+            active={alerts.active}
+            acked={alerts.acked}
+            now={now}
+            api={api}
+          />
+        ) : (
+          <AlertsView alerts={alerts} now={now} />
+        )}
+      </main>
+      <div className="toasts" aria-live="polite">
+        {alerts.toasts.map((t) => (
+          <div key={t.id} className={`toast ${t.severity}`} role="status">
+            <span aria-hidden="true">{severityIcons[t.severity]}</span>
+            <div>
+              <strong>{t.title}</strong>
+              <small>{t.detail}</small>
+            </div>
             <button
               className="link"
-              aria-label="Cerrar error"
-              onClick={() => setError("")}
+              aria-label="Cerrar aviso"
+              onClick={() => alerts.dismissToast(t.id)}
             >
               ✕
             </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AlertsView({
+  alerts,
+  now,
+}: {
+  alerts: ReturnType<typeof useAlerts>;
+  now: number;
+}) {
+  return (
+    <div className="alerts-grid">
+      <section className="card">
+        <header className="user-head">
+          <h2>Alertas activas</h2>
+          <button disabled={!alerts.pending.length} onClick={alerts.ackAll}>
+            Reconocer todas
+          </button>
+        </header>
+        {alerts.active.length ? (
+          <ul className="alert-list">
+            {alerts.active.map((a) => {
+              const done = alerts.acked.has(a.id);
+              return (
+                <li
+                  key={a.id}
+                  className={`alert-item ${a.severity} ${done ? "acked" : ""}`}
+                >
+                  <span className={`sev ${a.severity}`}>
+                    {severityNames[a.severity]}
+                  </span>
+                  <div>
+                    <strong>{a.title}</strong>
+                    <small className="muted">
+                      {a.deviceId ? `${a.deviceId} · ` : ""}desde{" "}
+                      {relative(a.at, now)} · {a.detail}
+                    </small>
+                  </div>
+                  {a.severity === "critical" || a.severity === "warning" ? (
+                    done ? (
+                      <span className="muted small">Reconocida</span>
+                    ) : (
+                      <button onClick={() => alerts.ack(a.id)}>
+                        Reconocer
+                      </button>
+                    )
+                  ) : (
+                    <span />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="all-clear">
+            ✅ Todo en orden: ningún sensor reporta problemas.
           </p>
         )}
-        {!users ? (
-          <p className="muted">Cargando datos del backend…</p>
-        ) : tab === "users" ? (
-          <UsersView users={users} apply={apply} api={api} />
+      </section>
+      <section className="card">
+        <h2>Historial de notificaciones</h2>
+        {alerts.log.length ? (
+          <ul className="list log">
+            {alerts.log.map((a) => (
+              <li key={a.id}>
+                <span
+                  className={`sev-dot ${a.severity}`}
+                  aria-label={severityNames[a.severity]}
+                />
+                <span>
+                  <strong>{a.title}</strong>{" "}
+                  <span className="muted small">{a.detail}</span>
+                </span>
+                <span className="muted small">{time(a.at)}</span>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <DevicesView devices={devices} emailOf={emailOf} />
+          <p className="muted small">Sin notificaciones en esta sesión.</p>
         )}
-      </main>
-      {toast && (
-        <div className="toast" role="status">
-          {toast}
-        </div>
-      )}
+      </section>
     </div>
   );
 }
@@ -428,79 +644,199 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+const simulations: [SimKind, string][] = [
+  ["deliver", "Entrega completa"],
+  ["missed", "Dosis omitida"],
+  ["blister", "Sin blíster"],
+  ["failure", "Fallo del motor"],
+  ["offline", "Desconexión"],
+  ["restore", "Restablecer"],
+];
+
 function DevicesView({
   devices,
   emailOf,
+  active,
+  acked,
+  now,
+  api,
 }: {
   devices: Devices;
   emailOf: (uid?: string) => string;
+  active: Alert[];
+  acked: ReadonlySet<string>;
+  now: number;
+  api: AdminApi;
 }) {
   const entries = Object.entries(devices);
-  if (!entries.length)
-    return <p className="muted">No hay dispositivos registrados.</p>;
   return (
-    <div className="devices">
-      {entries.map(([id, d]) => (
-        <DeviceCard key={id} id={id} device={d} emailOf={emailOf} />
-      ))}
-    </div>
+    <>
+      {api.simulate && (
+        <section className="card simulator">
+          <div>
+            <h2>Simulador de la demostración</h2>
+            <p className="muted small">
+              Provoca cambios en los sensores del pastillero ficticio para ver
+              alertas y alarmas.
+            </p>
+          </div>
+          <div className="row">
+            {simulations.map(([kind, label]) => (
+              <button
+                key={kind}
+                className={kind === "restore" ? "primary" : ""}
+                onClick={() => api.simulate!(kind)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+      {!entries.length ? (
+        <p className="muted">No hay dispositivos registrados.</p>
+      ) : (
+        <div className="devices">
+          {entries.map(([id, d]) => (
+            <DeviceCard
+              key={id}
+              id={id}
+              device={d}
+              emailOf={emailOf}
+              alerts={active.filter((a) => a.deviceId === id)}
+              acked={acked}
+              now={now}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
+type Tone = "ok" | "warn" | "bad" | "busy" | "neutral";
 function DeviceCard({
   id,
   device,
   emailOf,
+  alerts,
+  acked,
+  now,
 }: {
   id: string;
   device: Device;
   emailOf: (uid?: string) => string;
+  alerts: Alert[];
+  acked: ReadonlySet<string>;
+  now: number;
 }) {
   const program = device.v2?.program,
     state = device.v2?.state ?? {},
     regimens = Object.values(program?.regimens ?? {}),
-    events = Object.values(device.v2?.events ?? {})
-      .sort((a, b) => b.actualAt - a.actualAt)
-      .slice(0, 8);
+    events = Object.values(device.v2?.events ?? {}).sort(
+      (a, b) => b.actualAt - a.actualAt,
+    ),
+    recent = events.slice(0, 8);
   const positions = program?.positions ?? state.positions ?? 5;
-  const fresh = !!state.updatedAt && Date.now() - state.updatedAt < 30000;
+  const fresh = !!state.updatedAt && now - state.updatedAt < OFFLINE_MS;
+  const phase = state.phase;
+  // Compartimento en curso: el de la última entrega iniciada mientras el ciclo no termina.
+  const current =
+    phase !== undefined && phase >= 1 && phase <= 4
+      ? events.find((e) => e.type === "STARTED")?.compartment
+      : undefined;
+  const critical = alerts.some((a) => a.severity === "critical");
+  const unacked = alerts.some(
+    (a) => a.severity === "critical" && !acked.has(a.id),
+  );
+  const behind =
+    !!program?.revision && (state.appliedRevision ?? 0) < program.revision;
+  const sensors: [string, string, Tone][] = [
+    [
+      "Conexión",
+      fresh ? "En línea" : `Sin señal ${relative(state.updatedAt, now)}`,
+      fresh ? "ok" : "bad",
+    ],
+    [
+      "Fase",
+      phaseName(phase),
+      phase === 7 || phase === 5
+        ? "bad"
+        : phase === 6
+          ? "warn"
+          : phase && phase >= 1
+            ? "busy"
+            : "ok",
+    ],
+    [
+      "Calibración",
+      state.calibrated ? "Calibrado" : "Sin calibrar",
+      state.calibrated ? "ok" : "warn",
+    ],
+    [
+      "Blíster",
+      state.blisterPresent === false ? "Ausente" : "Presente",
+      state.blisterPresent === false ? "warn" : "ok",
+    ],
+    [
+      "Almacenamiento",
+      state.storageHealthy === false ? "Con fallas" : "Correcto",
+      state.storageHealthy === false ? "bad" : "ok",
+    ],
+    [
+      "Sensor de salida",
+      state.exitDetected ? "Pastilla detectada" : "Sin detección",
+      state.exitDetected ? "busy" : "neutral",
+    ],
+    [
+      "Servo",
+      state.servoOpen ? "Abierto" : "Cerrado",
+      state.servoOpen ? "busy" : "neutral",
+    ],
+    [
+      "Bomba",
+      state.pumpActive ? "Activa" : "Inactiva",
+      state.pumpActive ? "busy" : "neutral",
+    ],
+    [
+      "Revisión",
+      `${state.appliedRevision ?? "—"} / ${program?.revision ?? "—"}`,
+      behind ? "warn" : "ok",
+    ],
+  ];
   return (
-    <article className="card device">
+    <article
+      className={`card device ${critical ? "critical" : ""} ${unacked ? "flashing" : ""}`}
+    >
       <header className="user-head">
         <div>
           <h2>{id}</h2>
           <span className="muted small">
             Responsable: {emailOf(device.ownerUid)} · ESP32:{" "}
-            {emailOf(device.deviceUid)}
+            {emailOf(device.deviceUid)} ·{" "}
+            {state.simulation ? "Simulación" : "Hardware"}
           </span>
         </div>
-        <span className={`chip ${fresh ? "ok" : "warn"}`}>
-          {fresh ? "En línea" : `Visto ${relative(state.updatedAt)}`}
+        <span
+          className={`chip ${critical ? "bad" : alerts.length ? "warn" : "ok"}`}
+        >
+          {critical
+            ? "Atención requerida"
+            : alerts.length
+              ? `${alerts.length} aviso(s)`
+              : "Sin alertas"}
         </span>
       </header>
       <div className="device-body">
-        <Carousel positions={positions} regimens={regimens} />
-        <dl className="facts">
-          <dt>Fase</dt>
-          <dd>{phaseName(state.phase)}</dd>
-          <dt>Calibrado</dt>
-          <dd>{state.calibrated ? "Sí" : "No"}</dd>
-          <dt>Revisión</dt>
-          <dd>
-            {state.appliedRevision ?? "—"} aplicada / {program?.revision ?? "—"}{" "}
-            publicada
-          </dd>
-          <dt>Modo</dt>
-          <dd>
-            {(state.simulation ?? program?.targetMode === "simulation")
-              ? "Simulación"
-              : "Hardware"}
-          </dd>
-          <dt>Almacenamiento</dt>
-          <dd>{state.storageHealthy === false ? "Con fallas" : "Correcto"}</dd>
-          <dt>Blíster</dt>
-          <dd>{state.blisterPresent === false ? "Ausente" : "Presente"}</dd>
-        </dl>
+        <Carousel positions={positions} regimens={regimens} current={current} />
+        <div className="sensors" aria-label={`Sensores de ${id}`}>
+          {sensors.map(([label, value, tone]) => (
+            <div key={label} className={`sensor ${tone}`}>
+              <small>{label}</small>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
       </div>
       <h3>Pautas</h3>
       {regimens.length ? (
@@ -526,10 +862,13 @@ function DeviceCard({
         <p className="muted small">Sin plan publicado.</p>
       )}
       <h3>Eventos recientes</h3>
-      {events.length ? (
+      {recent.length ? (
         <ul className="list">
-          {events.map((e) => (
-            <li key={e.doseId + e.type}>
+          {recent.map((e) => (
+            <li
+              key={e.doseId + e.type}
+              className={`event ${eventTone[e.type] ?? ""}`}
+            >
               <span className={`slot-dot c${e.compartment}`}>
                 C{e.compartment}
               </span>
@@ -550,14 +889,23 @@ function DeviceCard({
     </article>
   );
 }
+const eventTone: Record<string, string> = {
+  MISSED: "bad",
+  BLOCKED: "bad",
+  RECOVERY: "bad",
+  NO_EXIT: "warn",
+  CONFIRMED: "ok",
+};
 
 /** Cinco posiciones: 0 es el retorno vacío y 1..4 son compartimentos útiles. */
 function Carousel({
   positions,
   regimens,
+  current,
 }: {
   positions: number;
   regimens: { compartment: number; name: string; enabled: boolean }[];
+  current?: number;
 }) {
   return (
     <svg
@@ -581,6 +929,9 @@ function Carousel({
                 ? "Posición 0: retorno, sin dosis"
                 : `Compartimento ${i}: ${names.join(", ") || "libre"}`}
             </title>
+            {i === current && (
+              <circle cx={x} cy={y} r="31" className="slot-ring" />
+            )}
             <circle
               cx={x}
               cy={y}
@@ -600,6 +951,11 @@ function Carousel({
         );
       })}
       <circle cx="110" cy="110" r="24" className="hub" />
+      {current !== undefined && (
+        <text x="110" y="114" textAnchor="middle" className="hub-label">
+          C{current}
+        </text>
+      )}
     </svg>
   );
 }

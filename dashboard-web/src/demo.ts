@@ -1,4 +1,4 @@
-import { ApiError, type AdminApi } from "./api";
+import { ApiError, type AdminApi, type SimKind } from "./api";
 import type { AccessRecord, AdminUser, Devices } from "./types";
 
 /**
@@ -99,6 +99,9 @@ export function demoApi(now = Date.now()): AdminApi {
           simulation: true,
           storageHealthy: true,
           blisterPresent: true,
+          exitDetected: false,
+          pumpActive: false,
+          servoOpen: false,
           positions: 5,
         },
         events: {
@@ -154,8 +157,75 @@ export function demoApi(now = Date.now()): AdminApi {
     return structuredClone(user.access);
   };
   const ok = <T>(value: T) => Promise.resolve(structuredClone(value));
+  // Simulación en vivo: latido cada lectura y escenarios que cambian sensores y eventos.
+  const device = devices["pastillero-01"].v2!;
+  const state = device.state!;
+  let offline = false,
+    seq = 0;
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  const later = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
+  const event = (type: string, compartment: number) => {
+    const t = Date.now();
+    device.events![`sim-${++seq}`] = {
+      doseId: `sim-dose-${seq}`,
+      type,
+      scheduledAt: t,
+      actualAt: t,
+      compartment,
+      simulation: true,
+    };
+  };
+  const simulate = (kind: SimKind) => {
+    switch (kind) {
+      case "deliver":
+        // Ciclo real del firmware: mover → entregar → regresar a cero → esperar botón → confirmar.
+        Object.assign(state, { phase: 1 });
+        later(1500, () => {
+          event("STARTED", 1);
+          Object.assign(state, {
+            phase: 2,
+            servoOpen: true,
+            exitDetected: true,
+          });
+        });
+        later(3500, () => Object.assign(state, { phase: 3, servoOpen: false }));
+        later(5000, () => Object.assign(state, { phase: 4 }));
+        later(8000, () => {
+          event("CONFIRMED", 1);
+          Object.assign(state, { phase: 0, exitDetected: false });
+        });
+        break;
+      case "missed":
+        event("MISSED", 2);
+        break;
+      case "blister":
+        state.blisterPresent = false;
+        event("BLOCKED", 1);
+        break;
+      case "failure":
+        Object.assign(state, { phase: 7, calibrated: false });
+        break;
+      case "offline":
+        offline = true;
+        state.updatedAt = Date.now() - 45000;
+        break;
+      case "restore":
+        timers.splice(0).forEach(clearTimeout);
+        offline = false;
+        Object.assign(state, {
+          phase: 0,
+          calibrated: true,
+          blisterPresent: true,
+          storageHealthy: true,
+          exitDetected: false,
+          servoOpen: false,
+          updatedAt: Date.now(),
+        });
+    }
+  };
   return {
     demo: true,
+    simulate,
     email: () => (signedIn ? "admin@demo.test" : null),
     async signIn() {
       signedIn = true;
@@ -171,7 +241,10 @@ export function demoApi(now = Date.now()): AdminApi {
       return () => listeners.delete(fn);
     },
     listUsers: () => ok(users),
-    devices: () => ok(devices),
+    devices() {
+      if (!offline) state.updatedAt = Date.now();
+      return ok(devices);
+    },
     async setAccess(uid, enabled, expected) {
       const user = find(uid);
       const record = bump(user, expected, {

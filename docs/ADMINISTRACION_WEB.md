@@ -1,6 +1,6 @@
 # Administración reservada al futuro dashboard
 
-La web tendrá una cuenta administrativa independiente. Android actúa como responsable y ESP32 como dispositivo: ninguno puede administrar usuarios, cambiar su propio rol ni ampliar sus permisos. El dashboard administrativo está en `dashboard-web/` (ver su README); React móvil sigue en web/ y se integra en el APK. El backend sirve el dashboard compilado desde su mismo origen. La guía COLABORACION_GITHUB.md explica el punto de partida del equipo.
+La web tendrá una cuenta administrativa independiente. Android actúa como responsable y ESP32 como dispositivo: ninguno puede administrar usuarios, cambiar su propio rol ni ampliar sus permisos. El dashboard administrativo está en `dashboard-web/` (ver su README); React móvil sigue en web/ y se integra en el APK. El backend sirve el dashboard compilado desde su mismo origen. El panel consulta `GET /api/devices` cada 5 s y genera alertas y alarmas (visuales y sonoras) a partir del estado V2 y los eventos; el detalle está en `dashboard-web/README.md`. La guía COLABORACION_GITHUB.md explica el punto de partida del equipo.
 
 La autoridad completa reside en un backend confiable con Firebase Admin SDK. El navegador se autentica y envía su ID token por `Authorization: Bearer`; el backend verifica firma, proyecto, expiración, revocación y la identidad administrativa en cada petición. Exige a la vez el UID principal configurado y el custom claim `dashboardAdmin=true`, emitido únicamente desde un entorno administrativo.
 

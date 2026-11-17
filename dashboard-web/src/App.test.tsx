@@ -118,3 +118,34 @@ it("envía el token como Bearer y traduce los errores del backend", async () => 
   });
   vi.unstubAllGlobals();
 });
+
+it("muestra la alarma, la reconoce y confirma cuando se resuelve", async () => {
+  const api = await start();
+  await userEvent.click(screen.getByRole("button", { name: "Dispositivos" }));
+  api.simulate!("blister");
+  api.simulate!("failure");
+  await userEvent.click(screen.getByRole("button", { name: "Actualizar" }));
+  const banner = await screen.findByRole("alert");
+  expect(banner).toHaveTextContent("Fallo: entregas detenidas");
+  expect(banner).toHaveTextContent("más");
+  expect(screen.getByText("Entrega bloqueada · C1")).toBeInTheDocument();
+  expect(screen.getByLabelText(/sin reconocer/)).toBeInTheDocument();
+  expect(document.querySelector(".device.flashing")).not.toBeNull();
+  // Reconocer todas detiene la alarma, pero las condiciones siguen visibles.
+  await userEvent.click(screen.getByRole("button", { name: /^Alertas/ }));
+  await userEvent.click(
+    screen.getByRole("button", { name: "Reconocer todas" }),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getAllByText("Reconocida").length).toBeGreaterThan(0);
+  api.simulate!("restore");
+  await userEvent.click(screen.getByRole("button", { name: "Actualizar" }));
+  expect(
+    await screen.findByText(
+      "✅ Todo en orden: ningún sensor reporta problemas.",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getAllByText("Resuelto: Fallo: entregas detenidas").length,
+  ).toBeGreaterThan(0);
+});

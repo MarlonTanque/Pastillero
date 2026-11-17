@@ -2,6 +2,8 @@
 
 Panel web para **el administrador**. Los responsables siguen usando la app Android; este panel decide qué pueden hacer en ella.
 
+**Demo en vivo:** https://pastillero-badi-dashboard.vercel.app (datos ficticios; usa el simulador de la pestaña *Dispositivos* para provocar las alarmas).
+
 - **Usuarios y permisos:** lista las cuentas, bloquea/habilita una cuenta completa y activa o desactiva funcionalidades de la app por responsable.
 - **Dispositivos:** sensores y estado V2 de cada pastillero en vivo, carrusel de cinco posiciones (0 = retorno vacío, C1–C4 útiles), pautas publicadas y eventos recientes. Solo lectura: el panel no envía comandos al hardware.
 - **Alertas:** alarmas visuales y sonoras ante cambios críticos de los sensores y confirmación de cada comando.

@@ -20,10 +20,12 @@ const store={
   async readDevices() {return (await database.ref('devices').get()).val()??{};},
   async changeAccess(uid,expectedVersion,transform) {
     const result=await database.ref('access/users/'+uid).transaction(old=>{
-      if(!old || old.version!==expectedVersion || !['owner','device'].includes(old.role)) return;
+      // The first run may see an empty local cache: returning null lets the server answer with the real record.
+      if(old===null) return null;
+      if(old.version!==expectedVersion || !['owner','device'].includes(old.role)) return;
       return transform(old);
     },undefined,false);
-    return result.committed?result.snapshot.val():null;
+    return result.committed && result.snapshot.exists()?result.snapshot.val():null;
   },
   async audit(event) {await database.ref('administration/audit').push(event);}
 };

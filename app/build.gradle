@@ -31,9 +31,9 @@ android {
         targetSdk 36
         // Lectura: Número creciente de actualización para instalar esta entrega encima de la anterior, conservando sus
         // Lectura: datos.
-        versionCode 7
+        versionCode 8
         // Lectura: Etiqueta de esta entrega; Room usa esquema 4 y conserva las migraciones anteriores.
-        versionName '2.0-simulacion'
+        versionName '2.1-wifi-simulacion'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'FIREBASE_API_KEY', quoted('apiKey', '')
         buildConfigField 'String', 'FIREBASE_APP_ID', quoted('appId', '')
@@ -51,6 +51,8 @@ android {
 // Lectura: Bibliotecas de la app, procesador de Room y herramientas de prueba; Gradle resuelve las versiones
 // Lectura: declaradas.
 dependencies {
+    implementation project(':espProvisioning')
+    implementation 'org.greenrobot:eventbus:3.3.1'
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     implementation 'androidx.webkit:webkit:1.15.0'
     implementation 'androidx.appcompat:appcompat:1.7.1'

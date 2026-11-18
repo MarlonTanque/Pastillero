@@ -231,4 +231,15 @@ public class MainActivity extends AppCompatActivity {
             repo.close();
         super.onDestroy();
     }
+    @Override public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        menu.add(0, 901, 0, R.string.wifi_setup_title);
+        return true;
+    }
+    @Override public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (item.getItemId() == 901) {
+            startActivity(new android.content.Intent(this, WifiSetupActivity.class));
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 }

@@ -47,6 +47,7 @@ export function request(
   payload: Record<string, unknown> = {},
 ): Promise<Snapshot> {
   if (!window.BadiNative) {
+    if (action === "wifiSetup") return Promise.reject(new Error("Usa la app Android en un teléfono con Wi-Fi; el navegador es una demostración."));
     try {
       const data = preview(action, payload);
       update(data);

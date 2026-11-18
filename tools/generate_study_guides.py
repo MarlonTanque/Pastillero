@@ -75,7 +75,10 @@ def inventory():
     android=[p for p in ROOT.joinpath('app/src').rglob('*') if p.suffix in ('.java','.xml')]
     android+=[ROOT/'build.gradle',ROOT/'settings.gradle',ROOT/'app/build.gradle',ROOT/'gradle.properties',
               ROOT/'gradle/wrapper/gradle-wrapper.properties',ROOT/'firebase-config.example.properties',
-              ROOT/'firebase-config.properties',ROOT/'local.properties',ROOT/'app/google-services.json',ROOT/'.gitignore']
+              ROOT/'firebase-config.properties',ROOT/'local.properties',ROOT/'app/google-services.json',ROOT/'.gitignore',
+              ROOT/'third_party/esp-provisioning/build.gradle',
+              ROOT/'third_party/esp-provisioning/src/main/java/com/espressif/provisioning/PrivateLog.java',
+              ROOT/'third_party/esp-provisioning/src/main/java/com/espressif/provisioning/SecureCapabilities.java']
     for folder in ('firebase','admin-backend','tools'):
         android += [p for p in ROOT.joinpath(folder).glob('*') if p.suffix in ('.mjs','.json','.py','.ps1') and p.name!='package-lock.json']
     # Solo fuentes propias: no se duplica el bundle generado ni las dependencias de npm.
@@ -124,7 +127,7 @@ Glosario para leer las tablas: `public` expone un miembro; `private` lo reserva 
 
 '''
     for group,(title,name) in zip(groups,[('Guía Arduino línea por línea','GUIA_ARDUINO_LINEA_POR_LINEA.md'),('Guía Android línea por línea y anexos técnicos','GUIA_ANDROID_LINEA_POR_LINEA.md')]):
-        intro='# '+title+'\n\n'+common+'Versión vigente: APK 2.0-simulacion, Room 4 y protocolo program.version=2. El montaje de producción tiene cinco espacios (cuatro útiles y cero vacío), con 640 pasos por separación. El perfil histórico V1 conserva cuatro espacios y las pruebas originales. Para la arquitectura y límites consulta VERSION_2_IMPLEMENTACION.md.\n\n'
+        intro='# '+title+'\n\n'+common+'Versión vigente: APK 2.1-wifi-simulacion, Room 4 y protocolo program.version=2. El montaje de producción tiene cinco espacios (cuatro útiles y cero vacío), con 640 pasos por separación. El perfil histórico V1 conserva cuatro espacios y las pruebas originales. Para la arquitectura y límites consulta VERSION_2_IMPLEMENTACION.md.\n\n'
         if 'ARDUINO' in name:
             intro+='El `.ino` contiene librerías, configuración visible, certificados TLS, pines, máquina de estados y funciones en 17 secciones. La copia privada se genera desde esa misma fuente con tools/generate_private_firmware.py y valores de private/firmware.local.json; no mantiene otra implementación. No hay cabeceras propias ni credenciales reales en el sketch público. partitions.csv conserva el formato requerido por Arduino para la flash. Las clases existentes de control y adaptadores se mantienen dentro del .ino por compatibilidad con pruebas y con Stream; no se añadieron clases nuevas. El sketch de original/ es referencia histórica y no se ejecuta en QA.\n\n'
         else:

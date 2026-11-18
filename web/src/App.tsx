@@ -1146,6 +1146,9 @@ export function App() {
               >
                 {data.signedIn ? "Cerrar sesión" : "Entrar a mi cuenta"}
               </button>
+              <button className="secondary" onClick={() => doAction("wifiSetup", {}, "Abriendo configuración local de Wi-Fi")}>
+                Configurar Wi-Fi del pastillero
+              </button>
               <button
                 className="text-button"
                 onClick={() => doAction("nativeView", {}, "")}

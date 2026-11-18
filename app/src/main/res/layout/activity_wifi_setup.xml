@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="24dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_setup_title" android:textSize="24sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_setup_instructions" android:paddingBottom="16dp" />
+        <EditText android:id="@+id/wifi_device" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="@string/wifi_device_hint" android:inputType="textVisiblePassword" android:saveEnabled="false"
+            android:importantForAutofill="noExcludeDescendants" android:minHeight="48dp" />
+        <EditText android:id="@+id/wifi_code" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="@string/wifi_code_hint" android:inputType="textPassword" android:saveEnabled="false"
+            android:importantForAutofill="noExcludeDescendants" android:minHeight="48dp" />
+        <Button android:id="@+id/wifi_connect" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_connect" />
+        <Button android:id="@+id/wifi_scan" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_scan" android:enabled="false" />
+        <EditText android:id="@+id/wifi_ssid" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="@string/wifi_ssid_hint" android:inputType="textVisiblePassword" android:saveEnabled="false"
+            android:importantForAutofill="noExcludeDescendants" android:minHeight="48dp" />
+        <EditText android:id="@+id/wifi_password" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="@string/wifi_password_hint" android:inputType="textPassword" android:saveEnabled="false"
+            android:importantForAutofill="noExcludeDescendants" android:minHeight="48dp" />
+        <CheckBox android:id="@+id/wifi_open" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_open_network" />
+        <Button android:id="@+id/wifi_send" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_send" android:enabled="false" />
+        <TextView android:id="@+id/wifi_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_initial_status" android:accessibilityLiveRegion="polite" android:padding="12dp" />
+        <Button android:id="@+id/wifi_close" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/wifi_close" />
+    </LinearLayout>
+</ScrollView>

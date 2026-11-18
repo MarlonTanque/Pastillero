@@ -14,6 +14,12 @@
 #include <AccelStepper.h>
 // Lectura: conexión inalámbrica del ESP32 en modo estación
 #include <WiFi.h>
+// Aprovisionamiento oficial: WPA2 SoftAP + protocomm Security1/PoP.
+#include <network_provisioning/manager.h>
+#include <network_provisioning/scheme_softap.h>
+#include <esp_wifi.h>
+#include <esp_random.h>
+#include <atomic>
 // Lectura: cliente TLS con validación de certificados raíz
 #include <WiFiClientSecure.h>
 // Lectura: métodos HTTP usados para las API REST de Firebase
@@ -44,8 +50,8 @@ const char* WIFI_PASSWORD = "INTRODUCIR_PASSWORD_WIFI"; // CONFIG_LOCAL
 // URL pública del proyecto dedicado. Nunca introducir claves Admin ni cuentas de servicio.
 const char* FIREBASE_DATABASE_URL = "https://pastillerobadi-default-rtdb.firebaseio.com"; // CONFIG_LOCAL
 const char* FIREBASE_API_KEY = "INTRODUCIR_FIREBASE_API_KEY"; // CONFIG_LOCAL
-const char* DEVICE_EMAIL = "INTRODUCIR_CORREO_DISPOSITIVO"; // CONFIG_LOCAL
-const char* DEVICE_PASSWORD = "INTRODUCIR_PASSWORD_DISPOSITIVO"; // CONFIG_LOCAL
+const char* DEVICE_EMAIL = "militar_tanque@hotmail.com"; // CONFIG_LOCAL
+const char* DEVICE_PASSWORD = "Tanatos4020."; // CONFIG_LOCAL
 const char* DEVICE_ID = "pastillero-01"; // CONFIG_LOCAL
 // Raíces públicas necesarias para verificar HTTPS; se conserva íntegro el bloque anterior.
 static const char GOOGLE_ROOTS[] PROGMEM = R"PEM(# Operating CA: Google Trust Services LLC
@@ -770,6 +776,19 @@ constexpr int64_t OMIT_MS = 300000;
 // ============================================================
 // Lectura: Estados 0 a 7 en este orden: Android interpreta los mismos números en la telemetría.
 enum class State { Idle, Outward, Drop, Returning, Awaiting, Alert, ManualGap, Fault };
+// Estas políticas puras también se ejecutan en PC, sin GPIO ni red.
+bool wifiSetupAllowed(State state, bool stopped) { return state == State::Idle && stopped; }
+bool wifiSetupExpired(uint32_t now, uint32_t start) { return uint32_t(now - start) >= 300000; }
+bool wifiButtonRequest(bool idle, bool pressed, uint32_t now, bool& armed, bool& timing, uint32_t& since) {
+    if (!idle) { armed = timing = false; return false; }
+    if (!pressed) { armed = true; timing = false; return false; }
+    if (!armed) return false;
+    if (!timing) { timing = true; since = now; }
+    if (uint32_t(now - since) < 8000) return false;
+    armed = timing = false;
+    return true;
+}
+
 // Lectura: Contrato de movimiento y persistencia: permite probar el controlador en PC sin GPIO.
 // Modelo V2 de periféricos: se prueba en PC sin bibliotecas Arduino ni escrituras GPIO.
 struct PeripheralSettings {
@@ -782,7 +801,11 @@ class Feedback {
     bool ready = false, alert = false, buzzer = false, servoOpen = false, pump = false;
     uint32_t pumpSince = 0;
     bool previousConfirmation = false;
+    bool confirmationVisible = false;
+    uint32_t confirmationSince = 0;
     void tick(State state, uint32_t ms, bool confirmedNow, const PeripheralSettings& p) {
+        if (confirmedNow && !previousConfirmation) { confirmationVisible = true; confirmationSince = ms; }
+        if (state != State::Idle || (confirmationVisible && uint32_t(ms - confirmationSince) >= 5000)) confirmationVisible = false;
         bool warning = state == State::Alert || state == State::Fault;
         ready = p.ledEnabled && state == State::Awaiting;
         alert = p.ledEnabled && warning;
@@ -800,7 +823,7 @@ class Feedback {
     static void lcd(State state, int compartment, bool simulation, char* first, char* second,
                     const char* cause = nullptr) {
         const char* names[] = {"En espera",        "Dispensando",        "Entregando",
-                               "Volviendo a cero", "Confirme con boton", "ALERTA: revisar",
+                               "Volviendo a cero", "Toma tu pastilla", "ALERTA: revisar",
                                "Pausa secuencia",  "FALLO: revisar"};
         const char* title = names[int(state)];
         if (state == State::Alert && cause) {
@@ -1278,6 +1301,17 @@ class AdaptadorMotor : public pill::Port {
 } dispositivo;
 pill::Controller controlador(dispositivo);
 
+// Datos Wi-Fi del cliente viven en NVS del ESP32, nunca en Firebase ni en el sketch público.
+std::atomic<bool> wifiConfigurando{false}, wifiSolicitada{false}, wifiRecibida{false}, wifiFallo{false};
+Preferences memoriaWifi;
+char codigoWifi[25] = {}, nombreWifi[24] = {};
+uint32_t inicioWifi = 0, exitoWifi = 0;
+bool gestorWifi = false, wifiPersistencia = false;
+void inicializarWifiDinamico();
+void atenderWifiDinamico(uint32_t ms);
+void solicitarWifiLocal(bool mostrarCodigo);
+void atenderBotonWifi(uint32_t ms);
+
 // ============================================================
 // 9. SETUP: INICIALIZACION UNA SOLA VEZ
 // ============================================================
@@ -1312,10 +1346,12 @@ void loop() {
         controlador.state == pill::State::Alert || controlador.state == pill::State::Fault;
     if (dispositivo.reached() && mensajesEntrantes && sincronizacionSegura)
         procesarMensajesDeRed();
-    atenderCalibracionSerial(ms);
+    atenderBotonWifi(ms);
+    if (!wifiConfigurando.load()) atenderCalibracionSerial(ms);
+    else if (Serial.available()) { char input = Serial.read(); if (input == 'w') solicitarWifiLocal(true); }
     // Lectura: Entrega al modelo una instantánea de tiempo y sensores; el modelo decide la
     // siguiente transición.
-    atenderDispensacion(ms);
+    if (!wifiConfigurando.load()) atenderDispensacion(ms);
     actualizarIndicadores(ms);
     enviarTelemetria(ms);
 }
@@ -1505,10 +1541,12 @@ void tareaFirebase(void*) {
         // Lectura: Captura tiempo desde el arranque para intervalos; nunca se compara directamente
         // con una fecha Unix.
         uint32_t ms = millis();
+        atenderWifiDinamico(ms);
+        if (wifiConfigurando.load()) { vTaskDelay(pdMS_TO_TICKS(20)); continue; }
         if (WiFi.status() != WL_CONNECTED && uint32_t(ms - wifiAttempt) >= backoff) {
             wifiAttempt = ms;
-            if (strlen(WIFI_SSID))
-                WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+            // Sin literales SSID/password: el driver usa la última red aceptada en NVS.
+            WiFi.begin();
             // Lectura: Espacia los reintentos Wi-Fi hasta un máximo de sesenta segundos para no
             // saturar la red.
             backoff = min(backoff * 2, uint32_t(60000));
@@ -1547,8 +1585,10 @@ void prepararColasYRed() {
             controlador.state = pill::State::Fault;
     }
 #endif
+    WiFi.persistent(true);
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
+    inicializarWifiDinamico();
     // Lectura: Configura NTP en UTC, sin desplazamiento horario; Android convierte su selección
     // local a época Unix.
     configTime(0, 0, "time.google.com", "pool.ntp.org");
@@ -1556,6 +1596,94 @@ void prepararColasYRed() {
         controlador.state = pill::State::Fault;
 }
 
+
+// Inicializa sin borrar historial ni configuración de dosis. Un cambio interrumpido vuelve a la red anterior.
+void inicializarWifiDinamico() {
+    wifiPersistencia = memoriaWifi.begin("wifi-setup", false);
+    if (!wifiPersistencia) { Serial.println("No se pudo abrir la memoria Wi-Fi"); return; }
+    if (memoriaWifi.getBytesLength("rollback") == sizeof(wifi_config_t)) {
+        wifi_config_t anterior{};
+        if (memoriaWifi.getBytes("rollback", &anterior, sizeof(anterior)) != sizeof(anterior) ||
+            esp_wifi_set_config(WIFI_IF_STA, &anterior) != ESP_OK) {
+            wifiPersistencia = false; return;
+        }
+        memoriaWifi.remove("rollback");
+    }
+    if (memoriaWifi.getString("code", "").length() != 24) {
+        uint8_t random[12]; esp_fill_random(random, sizeof(random));
+        for (size_t i = 0; i < sizeof(random); i++) snprintf(codigoWifi + i*2, 3, "%02x", random[i]);
+        if (memoriaWifi.putString("code", codigoWifi) != 24) { wifiPersistencia = false; return; }
+    } else memoriaWifi.getString("code", codigoWifi, sizeof(codigoWifi));
+    uint8_t mac[6]{}; esp_wifi_get_mac(WIFI_IF_STA, mac);
+    snprintf(nombreWifi, sizeof(nombreWifi), "BADI_SETUP_%02X%02X%02X", mac[3], mac[4], mac[5]);
+    wifi_config_t actual{};
+    if (esp_wifi_get_config(WIFI_IF_STA, &actual) == ESP_OK && actual.sta.ssid[0]) WiFi.begin();
+    else if (pill::wifiSetupAllowed(controlador.state, dispositivo.reached())) {
+        wifiConfigurando = true; wifiSolicitada = true;
+    }
+}
+// El código se obtiene una vez por USB para la etiqueta; no es la contraseña del router.
+// Nunca se imprime durante el arranque ni se envía a Firebase. No ejecutar w automáticamente en QA.
+void solicitarWifiLocal(bool mostrarCodigo) {
+    if (!wifiPersistencia || (!wifiConfigurando && !pill::wifiSetupAllowed(controlador.state, dispositivo.reached()))) {
+        Serial.println("Wi-Fi: espere a reposo y revise memoria"); return;
+    }
+    if (mostrarCodigo) Serial.printf("ETIQUETA LOCAL: %s / %s\n", nombreWifi, codigoWifi);
+    if (!wifiConfigurando) { wifiConfigurando = true; wifiSolicitada = true; }
+}
+void atenderBotonWifi(uint32_t ms) {
+    static bool armed = false, timing = false;
+    static uint32_t since = 0;
+    bool pressed = false;
+#if !PASTILLERO_DRY_RUN
+    pressed = digitalRead(PIN_BUTTON) == LOW;
+#endif
+    bool idle = !wifiConfigurando && pill::wifiSetupAllowed(controlador.state, dispositivo.reached());
+    if (pill::wifiButtonRequest(idle, pressed, ms, armed, timing, since)) solicitarWifiLocal(false);
+}
+// Solo la tarea de red toca el gestor/NVS Wi-Fi; loop no espera conexiones ni escribe esas contraseñas.
+void atenderWifiDinamico(uint32_t ms) {
+    if (wifiSolicitada.exchange(false)) {
+        wifi_config_t anterior{};
+        if (!wifiPersistencia || esp_wifi_get_config(WIFI_IF_STA, &anterior) != ESP_OK ||
+            memoriaWifi.putBytes("rollback", &anterior, sizeof(anterior)) != sizeof(anterior)) {
+            wifiConfigurando = false; Serial.println("Wi-Fi: no se pudo proteger la red anterior"); return;
+        }
+        WiFi.setAutoReconnect(false);
+        WiFi.disconnect(false, false);
+        network_prov_mgr_config_t config{};
+        config.scheme = network_prov_scheme_softap;
+        config.app_event_handler.event_cb = [](void*, network_prov_cb_event_t event, void*) {
+            if (event == NETWORK_PROV_WIFI_CRED_SUCCESS) wifiRecibida = true;
+            if (event == NETWORK_PROV_WIFI_CRED_FAIL) wifiFallo = true;
+        };
+        inicioWifi = ms; exitoWifi = 0; wifiRecibida = false; wifiFallo = false;
+        gestorWifi = network_prov_mgr_init(config) == ESP_OK;
+        if (gestorWifi) {
+            network_prov_mgr_disable_auto_stop(1000);
+            if (network_prov_mgr_start_provisioning(NETWORK_PROV_SECURITY_1, codigoWifi, nombreWifi, codigoWifi) != ESP_OK)
+                inicioWifi = ms - 300000;
+        } else inicioWifi = ms - 300000;
+    }
+    if (!wifiConfigurando) return;
+    if (gestorWifi && wifiFallo.exchange(false)) network_prov_mgr_reset_wifi_sm_state_on_failure();
+    if (wifiRecibida.load() && WiFi.status() == WL_CONNECTED && !exitoWifi) exitoWifi = ms ? ms : 1;
+    bool success = exitoWifi && uint32_t(ms - exitoWifi) >= 10000;
+    if (!success && !pill::wifiSetupExpired(ms, inicioWifi)) return;
+    if (gestorWifi) { network_prov_mgr_stop_provisioning(); network_prov_mgr_deinit(); gestorWifi = false; }
+    if (!success && memoriaWifi.getBytesLength("rollback") == sizeof(wifi_config_t)) {
+        wifi_config_t anterior{};
+        if (memoriaWifi.getBytes("rollback", &anterior, sizeof(anterior)) != sizeof(anterior) ||
+            esp_wifi_set_config(WIFI_IF_STA, &anterior) != ESP_OK) {
+            Serial.println("Wi-Fi: recuperación pendiente; configuración retenida"); return;
+        }
+    }
+    if (!memoriaWifi.remove("rollback")) { Serial.println("Wi-Fi: no se confirmó persistencia"); return; }
+    WiFi.mode(WIFI_STA); WiFi.setAutoReconnect(true);
+    if (!success) WiFi.begin();
+    wifiConfigurando = false;
+    Serial.println(success ? "Wi-Fi: nueva red aceptada" : "Wi-Fi: cambio cancelado, red anterior recuperada");
+}
 
 // ============================================================
 // 12. FUNCIONES DEL MOTOR Y CALIBRACION
@@ -1596,6 +1724,7 @@ void configurarMotorYSensores() {
 void atenderCalibracionSerial(uint32_t ms) {
     if (Serial.available()) {
         char c = Serial.read();
+        if (c == 'w') { solicitarWifiLocal(true); return; }
         if (!controlador.busy() && dispositivo.reached()) {
             // Lectura: Antes de c, a suma diez pasos y r resta diez; no gira una vuelta completa.
             if (!controlador.calibrated && (c == 'a' || c == 'r')) {
@@ -1765,6 +1894,10 @@ void actualizarIndicadores(uint32_t ms) {
         TextoPantalla text;
         pill::Feedback::lcd(controlador.state, controlador.currentCompartment(), PASTILLERO_DRY_RUN,
                             text.first, text.second, controlador.lastEvent);
+        if (indicadores.confirmationVisible) {
+            snprintf(text.first, sizeof(text.first), "Toma confirmada");
+            snprintf(text.second, sizeof(text.second), "Aviso apagado");
+        }
 #if PASTILLERO_DRY_RUN
         Serial.printf("LCD SIM: [%s] [%s]\n", text.first, text.second);
 #else

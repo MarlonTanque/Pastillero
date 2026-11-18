@@ -1,0 +1,140 @@
+{
+  "repository": "https://github.com/espressif/esp-idf-provisioning-android",
+  "tag": "lib-2.4.4",
+  "archiveSha256": "689999170a1905e0b92e67d578b89da3b39748f9a7431412a1279ea251a6961d",
+  "selection": "Dependency closure of ESPDevice; no QR camera or manager UI",
+  "sources": [
+    {
+      "file": "src/main/java/com/espressif/provisioning/transport/BLETransport.java",
+      "upstreamSha256": "6d87dd259394c3056be8d6dfcf5d1951ee240aaf862d097a51357e52e9fac0c8"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/BigIntegerUtils.java",
+      "upstreamSha256": "7d8e3a2a2f465b25057a92b71924f67032b983031769a307ac444c58922347fe"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/ClientEvidenceRoutine.java",
+      "upstreamSha256": "af30cb484abc85d6cb06f0f94bb428918e59688a5a9eefc601126fd1fd2d2add"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/ClientSRP6Routines.java",
+      "upstreamSha256": "734c29077eddacd156ba13c6b0d47c5a76603d2123c420016595724cb4a04a2e"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/DeviceConnectionEvent.java",
+      "upstreamSha256": "4e784f58658c6a12723728f4904384a4cd896f6ec8eb9fbc2aee47f29c76bdca"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/ESPConstants.java",
+      "upstreamSha256": "d5caa3542d630dc74005d207e55206ec91037926384b2e4755a685b6e952a79d"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/ESPDevice.java",
+      "upstreamSha256": "c0a121b5288f48830814c59092d6ae079945458edce6161ca6484914d0bd4576"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/utils/HexEncoder.java",
+      "upstreamSha256": "a0ef21436a7cbce504bfd364f6890af07fbb67886875b90ac624f4598118055c"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/utils/MessengeHelper.java",
+      "upstreamSha256": "0315e7e3a3c2d56ec9f6750d59e7b5a22b0ded4baf241e515b65b5d5a9a838f1"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/listeners/ProvisionListener.java",
+      "upstreamSha256": "3411721b766c1cb076752a74870f4f417a647ada55a4462aaa01f91a25743620"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/listeners/ResponseListener.java",
+      "upstreamSha256": "1cf32005e015389c145a62ca627fbe111811797ba33e34a61ef259c3c3ede172"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6ClientCredentials.java",
+      "upstreamSha256": "bc13792a7ce5773051d0d43224632219c5cbe715dee61470ec7f7622ede4209b"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6ClientEvidenceContext.java",
+      "upstreamSha256": "d86d195c9746ba0d894678b87fe17d8592ecf7077c3eecaf01c427271ed3639e"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6ClientSession.java",
+      "upstreamSha256": "5daced9d645358d8a72598cd1198b20948c9db8bd0762ba5799c9ab34a524d5a"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6CryptoParams.java",
+      "upstreamSha256": "8167186f080e9578d7ee40230d3d33271676cd93306ce29a70749448bdfa7477"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6Exception.java",
+      "upstreamSha256": "b638adb0c8633d3c641d8e45362dce0b6db2be2784429c52e0216fafa5b4f3ca"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6Routines.java",
+      "upstreamSha256": "33db67a796f45430506f87b776c8e15da18c935c2c48b81c3c0d6f0005ef45d6"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6ServerEvidenceContext.java",
+      "upstreamSha256": "d7630ee427770c9495251a30c8b0d304f7407b7f1a18f1060a434a7f6301d7de"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/SRP6Session.java",
+      "upstreamSha256": "78de7c9666161333f2d06eaa8e678812aab44c1df47cfaf7d614cf850451526c"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/security/Security.java",
+      "upstreamSha256": "9338f705cb571728c14bb5db476a5774eccac9ad21e0a22e4022cc1c9eb9073e"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/security/Security0.java",
+      "upstreamSha256": "fa826fb787da212ab69e28a07161fe6b6d859b3532fa7bdab9ea8de1be849ce4"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/security/Security1.java",
+      "upstreamSha256": "f82d3f26165efe5260e48eea4931d8ac7df8e6b3a2822d41353e4ab013d02949"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/security/Security2.java",
+      "upstreamSha256": "4d4ca8c1fdcada224d1f3b55a03075073281e5f250280190adfcf7067268ccdd"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/ServerEvidenceRoutine.java",
+      "upstreamSha256": "f125fa60e86320a61699ed1bea736f64cd0c90a92bb45e90cb73895028ceaba8"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/Session.java",
+      "upstreamSha256": "5ff2f53d885ab7dc14425ccf791be8cce3e85567c5da8a08767d253b52dc702d"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/transport/SoftAPTransport.java",
+      "upstreamSha256": "ce450b20badd1203bb23dc7bd2c5f3ed704ea6c4d38b1bab9c1470c8626dad04"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/transport/Transport.java",
+      "upstreamSha256": "bf8651f2bcf57db2d62caa068f7491d89c53b700913db2402e753afa4f654e88"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/URoutine.java",
+      "upstreamSha256": "d7d609dad9bd3d725a1e6fcaf39807a5751429249937d72d422de2394fddb86c"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/URoutineContext.java",
+      "upstreamSha256": "7f8bea241e35011f2b5ab8eb37e493728cef1e82d71c04f8d56e8c91901b678d"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/WiFiAccessPoint.java",
+      "upstreamSha256": "3b8878762fc243e46c28f9f142a71a4ebdedfc00be7e7f62e93fbcf7d14a6970"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/listeners/WiFiScanListener.java",
+      "upstreamSha256": "e56f102e06a85323f5f211e1e2c3dc1207564b3909df1b41f9b7f1f57095c974"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/XRoutine.java",
+      "upstreamSha256": "ccb6e09f571bbd83b9bb7db0fdecb5f6df7a5168988a1d3bc1beeeec2ddc5d72"
+    },
+    {
+      "file": "src/main/java/com/espressif/provisioning/srp6a/XRoutineWithUserIdentity.java",
+      "upstreamSha256": "125a6abab2229cc3d09d65c79c90135535379e04edb9ec13a7fb3ec9620ebbcb"
+    }
+  ]
+}

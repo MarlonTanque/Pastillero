@@ -10,7 +10,7 @@ public final class BridgeProtocol {
     public static final String ORIGIN = "https://appassets.androidplatform.net";
     private static final Set<String> ACTIONS = new HashSet<>(
         Arrays.asList("snapshot", "saveMedication", "deleteMedication", "savePreferences",
-            "publish", "retry", "reload", "rebase", "ping", "signIn", "signOut", "nativeView"));
+            "publish", "retry", "reload", "rebase", "ping", "signIn", "signOut", "nativeView", "wifiSetup"));
     private BridgeProtocol() {
     }
     public static JSONObject parse(String text, String origin, boolean mainFrame)

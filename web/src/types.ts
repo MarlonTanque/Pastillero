@@ -76,7 +76,8 @@ export type Action =
   | "ping"
   | "signIn"
   | "signOut"
-  | "nativeView";
+  | "nativeView"
+  | "wifiSetup";
 export const defaults: Settings = {
   positions: 5,
   horizonDays: 7,

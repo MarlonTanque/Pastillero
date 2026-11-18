@@ -1,6 +1,6 @@
 # Evidencia pública y resultados locales
 
-`public-validation-summary.json` resume la validación del 22 de octubre de 2026. No representa una nueva ejecución de los 204 casos en la fecha de publicación del repositorio. La preparación del push tiene comprobaciones separadas con su fecha y resultados.
+`public-validation-summary.json` separa el cierre histórico del 22 de octubre, la publicación del 13 de noviembre y la revisión Wi-Fi 2.1 del 18 de noviembre de 2026. No representa una nueva ejecución de los 204 casos en la fecha de publicación del repositorio. La preparación del push tiene comprobaciones separadas con su fecha y resultados.
 
 `study-source-coverage.json` conserva el inventario de las guías educativas. Algunas entradas corresponden a la forma redactada de configuración local, deliberadamente no distribuida. En otra computadora deben preparar su configuración local y regenerar las guías para verificar ese inventario.
 

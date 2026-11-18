@@ -99,3 +99,28 @@ Se detectaron datos de acceso introducidos manualmente en el .ino público despu
 Se ejecutaron de nuevo **117 casos**: 32 JVM Android, 24 React, 37 reglas en emulador, 12 backend con dobles y 12 generador/importador. Todos aprobaron. Lint Android: **0 errores y 1 advertencia AndroidGradlePluginVersion**. Las guías finales de esta publicación cubren **111 archivos y 13 950 líneas no vacías**, sin fragmentos pendientes en el inventario. El resumen público está en reports/public-validation-summary.json.
 
 Los **204 casos**, 37 sondeos REST reales, APK y cuatro compilaciones descritos arriba corresponden al cierre histórico de octubre. En esta preparación no se repitieron la matriz ESP32, pruebas físicas, integración de red del nuevo sketch privado ni sondeos contra producción. Los APK, binarios, bibliotecas, configuración local, respaldos, capturas y registros completos se excluyen del repositorio. No se publicaron reglas ni se desplegó el backend administrativo.
+
+## Wi-Fi dinámico y carga corregida — 18 de noviembre de 2026
+
+La app 2.1-wifi-simulacion añade configuración Wi-Fi nativa desde Ajustes, sin enviar SSID/contraseñas a React, Room o Firebase. El ESP32 recibe la red mediante SoftAP protegido y Security1/PoP, guarda la configuración en NVS y protege el cambio con recuperación y ventana temporal. El botón distingue confirmación y pulsación larga; al confirmar se apagan avisos y el LCD compatible muestra el acuse. Guía y conexiones físicas: WIFI_DINAMICO_Y_CONFIRMACION.md.
+
+Se ejecutaron **144 casos** en esta revisión: 24 controlador histórico, 20 V2, 9 Wi-Fi/botón, 6 JSON, 8 instantáneas RAM, 42 JVM Android, 26 React, 2 formulario Android en el emulador y 7 regresiones de offsets. No equivalen a repetir todos los 204 casos históricos ni a probar radio/NVS/actuadores físicamente. Compilaron las cuatro variantes ESP32 y el APK; la app se actualizó en el emulador sin borrar Room.
+
+La primera carga usó offsets estándar incompatibles con la tabla custom y afectó parte del rango destinado a NVS. Se conservó un respaldo posterior de NVS; el prefijo original 0x9000..0xe000 se comparó antes de corregir. No había respaldo completo de flash previo al primer intento, por lo que **no se garantiza preservación completa del contenido previo del ESP32**. Room Android no fue borrado. Los intentos siguientes se interrumpieron al desaparecer COM5.
+
+El reintento final por COM5 completó la reparación del rango conocido sobrescrito y la carga correcta: aplicación en **0x50000**, OTA en **0x49000**. La verificación de escritura aprobó y el firmware respondió al comando de configuración local `w`; no se detectaron mensajes de pánico/error en esa captura. El código individual quedó exclusivamente en private/device-wifi-label.local.json, sin reproducirse en documentación ni chat. La imagen cargada es **DRY_RUN=1**; el usuario confirmó actuadores sin alimentación.
+
+Las cargas futuras de simulación deben usar tools/upload_simulation.py, que obtiene los offsets reales, respalda NVS y rechaza invasiones de NVS o binarios físicos. No usar la receta estándar de Arduino con esta tabla. Entregables conservados aparte: releases/wifi-20261117/; hashes en reports/wifi-artifacts.json.
+
+Pendientes: intercambio SSID/contraseña desde un teléfono Android real, comprobación de telemetría/PING real tras configurarlo, fallo de contraseña, pérdida de radio, corte de alimentación durante cambio y pruebas físicas de botón/LED/buzzer/LCD/servo/motor. La respuesta serie demuestra ejecución, no prueba completa de Wi-Fi/Firebase. No se publicaron reglas nuevas ni se subió esta revisión a GitHub automáticamente.
+
+
+## Actualización para trabajo en equipo — 18 de noviembre de 2026
+
+Se preparó la actualización Wi-Fi 2.1 de Android, ESP32 y frontend móvil para la rama main de MarlonTanque/Pastillero. Respaldo recuperable previo: archives/before-push-wifi-20261118-f1e24603.zip, 219 archivos y verificación íntegra del ZIP. Se conservan las entregas anteriores y los archivos privados. La inspección del remoto no encontró cambios nuevos respecto de 8bd0961.
+
+Antes de publicar se repitieron assembleDebug, testDebugUnitTest y lintDebug: compilación aprobada, 42 pruebas JVM sin fallos, cero errores de lint y una advertencia AndroidGradlePluginVersion. También aprobaron 26 pruebas React, siete regresiones del cargador y la comprobación de guías (123 archivos, 14 727 líneas no vacías). No se cuentan estas repeticiones como casos adicionales a los 144 de la revisión. Las fuentes y esquemas Room y las reglas Firebase no se modificaron en esta preparación.
+
+La auditoría de los bytes preparados para Git incluye los valores de configuración local y el código individual del dispositivo. Se restauró un marcador de configuración Firebase en la fuente pública y se regeneraron las guías; los valores reales se mantienen exclusivamente en los archivos privados. Se incluyen las fuentes y licencia del SDK Espressif adaptado, junto con instrucciones de configuración y colaboración. Los APK, binarios, respaldos NVS y configuración local permanecen excluidos. No se carga firmware ni se acciona hardware durante la publicación.
+
+Las dos variantes públicas ESP32 de la fuente final también recompilaron correctamente antes del commit: simulación y hardware, con registros locales reports/push-public-simulation.log y reports/push-public-hardware.log. No se cargaron. La comprobación de guías y la auditoría del índice Git aprobaron tras restaurar el marcador.

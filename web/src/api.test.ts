@@ -49,3 +49,19 @@ it("la vista web no ofrece autenticación de Firebase", async () => {
   delete window.BadiNative;
   await expect(request("signIn")).rejects.toThrow("dentro del APK");
 });
+
+it("Wi-Fi en navegador no simula un aprovisionamiento real", async () => {
+  delete window.BadiNative;
+  await expect(request("wifiSetup")).rejects.toThrow("teléfono con Wi-Fi");
+});
+it("Wi-Fi solo abre una pantalla nativa sin transmitir credenciales", async () => {
+  let sent = "";
+  window.BadiNative = { postMessage(text) {
+    sent = text;
+    const j = JSON.parse(text);
+    queueMicrotask(() => window.BadiNative?.onmessage?.({data: JSON.stringify({id:j.id,ok:true,data:{}})}));
+  }};
+  await request("wifiSetup");
+  expect(JSON.parse(sent).payload).toEqual({});
+  expect(sent).not.toMatch(/ssid|password|pop|credential/i);
+});

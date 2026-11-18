@@ -1,6 +1,6 @@
 # Colaboración — PastilleroBadi
 
-Repositorio: https://github.com/MarlonTanque/Pastillero. Preparación: 13 de noviembre de 2026. Esta entrega comparte fuentes; no despliega servicios, modifica reglas en producción ni carga firmware.
+Repositorio: https://github.com/MarlonTanque/Pastillero. Actualización: 18 de noviembre de 2026 (Wi-Fi 2.1). Esta entrega comparte fuentes; no despliega servicios, modifica reglas en producción ni carga firmware.
 
 ## Abrir el proyecto
 
@@ -25,7 +25,7 @@ Abrir la carpeta raíz `PastilleroBadi` en Android Studio, no solo `app/`. Ardui
 | `tests/`, `tools/` | Pruebas C++/Python y herramientas de compilación/estudio |
 | `docs/` | Contrato común, auditoría, hardware y guías por línea |
 
-No se distribuyen `private/`, configuración personal de Firebase, bibliotecas instaladas, respaldos, registros completos ni APK/binarios. Permanecen en el equipo original.
+El SDK de aprovisionamiento Espressif seleccionado se incluye en `third_party/esp-provisioning`, con licencia, procedencia y adaptaciones de seguridad documentadas. No se distribuyen `private/`, configuración personal de Firebase, herramientas instaladas, respaldos, registros completos ni APK/binarios. Permanecen en el equipo original.
 
 ## React actual y sitio web pendiente
 
@@ -65,7 +65,9 @@ En Linux/macOS usar `./gradlew` (si el sistema no conserva el permiso, `chmod +x
 
 Para estudiar o compilar la fuente pública no hace falta introducir contraseñas: contiene marcadores. Instalar el core ESP32 3.3.12, AccelStepper 1.64 y ArduinoJson 7.3.2, que son las versiones de la validación anterior; Wire/WiFi/HTTPClient/Preferences proceden del core. Placa usada: ESP32 DOIT ESP32 DEVKIT V1. Compilar con Verificar, sin cargar ni abrir un puerto serie durante QA.
 
-Para preparar una copia local con datos propios:
+El Wi-Fi del cliente se configura desde Ajustes de la app en un teléfono Android real: SSID/contraseña viajan al ESP32 mediante SoftAP WPA2 y Security1 con código individual. No pasan por React, Room ni Firebase. El emulador permite estudiar el formulario, pero no esta conexión de radio. Ver `WIFI_DINAMICO_Y_CONFIRMACION.md`. No compartir el código individual del dispositivo en GitHub.
+
+Para preparar una copia local con la identidad Firebase del ESP32 (las constantes Wi-Fi antiguas quedan como marcadores; se usa la red guardada en NVS):
 
 ```powershell
 New-Item -ItemType Directory -Force private,reports | Out-Null
@@ -77,6 +79,8 @@ python tools\generate_private_firmware.py
 ```
 
 `Copy-Item` es solo para la primera configuración: no repetirlo sobre un JSON privado ya completado. El generador conserva una sola implementación y produce `private/firmware/PastilleroESP32/PastilleroESP32.ino`. Los cambios de lógica se realizan en el `.ino` público, con marcadores intactos; después se regenera la copia privada. La cuenta del ESP32 es ordinaria y limitada, no una cuenta de servicio. Ver `docs/UNIFICACION_FIRMWARE.md` para edición/importación de los siete campos.
+
+La tabla actual coloca app0 en **0x50000** y OTA en **0x49000**. **No usar Cargar de Arduino IDE ni la receta estándar de Arduino CLI con esta tabla.** `tools/upload_simulation.py --help` explica el cargador que valida particiones y respalda NVS antes de una ejecución explícita; su comportamiento predeterminado solo comprueba el plan. La carga y las pruebas físicas deben coordinarse con el responsable, fuera del trabajo web.
 
 Mantener `PASTILLERO_DRY_RUN=1` y las disponibilidades opcionales en 0. NEMA17/TB6600 conserva PUL25/DIR26, 3200 pasos/vuelta, cuatro compartimentos útiles y cero vacío, calibración `a/r/c` y secuencia `s`. Servo GPIO13, LCD SDA21/SCL22 requieren identificar módulo, tensión, adaptación de nivel, recorrido y mecánica antes de habilitarlos. El modelo de pantalla todavía no está confirmado; no se supone compatibilidad por el nombre WPHX-8. No cargar firmware, accionar motores o usar medicamentos reales como parte del desarrollo web.
 
@@ -100,7 +104,9 @@ npm test
 
 Son pruebas con dobles del SDK; no activan el backend ni privilegios reales. Las pruebas `tests/*.cpp` compilan en PC la lógica del mismo `.ino` mediante `PASTILLERO_HOST_TEST`; algunos casos JSON requieren ArduinoJson. `tests/test_private_firmware.py` usa datos ficticios y un compilador Zig en `toolchain/zig/zig.exe`. Los scripts de QA completos tienen rutas locales Windows documentadas y requieren instalar sus herramientas/AVD antes de ejecutarse.
 
-Los verificadores históricos de respaldos y compilaciones dependen de `archives/` e informes locales excluidos del repositorio; no deben considerarse CI portable. Los 204 casos y cuatro binarios del informe son evidencia histórica del 22 de octubre, no una prueba física ni una ejecución nueva después de cada clon.
+Los verificadores históricos de respaldos y compilaciones dependen de `archives/` e informes locales excluidos del repositorio; no deben considerarse CI portable. Los 204 casos corresponden al cierre histórico del 22 de octubre. En Wi-Fi 2.1 se ejecutaron 144 casos y cuatro compilaciones ESP32; no representan una repetición de toda aquella matriz ni pruebas de actuadores. La carga de simulación y respuesta serie se verificaron el 18 de noviembre; el aprovisionamiento desde un teléfono real sigue pendiente. `reports/public-validation-summary.json` distingue cada fecha.
+
+Las regresiones nuevas del cargador se ejecutan sin placa con `python -m unittest discover -s tests -p test_upload_layout.py`. Las pruebas nuevas de Wi-Fi/botón están en `tests/wifi_setup_test.cpp`; las del formulario, en `WifiSetupActivityTest.java`, y las de validación de datos, en `WifiSetupPolicyTest.java`.
 
 ## Flujo de cambios e integración
 

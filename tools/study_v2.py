@@ -2,6 +2,16 @@
 import re
 
 FILES = {
+    'WifiSetupActivity.java': 'presenta el formulario nativo de Wi-Fi, pide permisos, conecta al AP y coordina el SDK cifrado sin escribir contraseñas en Room/Firebase ni pasarlas a React',
+    'WifiSetupPolicy.java': 'valida nombres, código por dispositivo y límites de bytes del SSID y contraseña; exige elegir de forma explícita una red abierta',
+    'WifiSetupPolicyTest.java': 'prueba límites UTF-8, redes abiertas, código de posesión, rechazo de degradación de seguridad y puente sin credenciales',
+    'WifiSetupActivityTest.java': 'prueba formulario y recreación con datos ficticios, sin abrir red ni sockets y sin cambiar la base de datos',
+    'PrivateLog.java': 'descarta los mensajes del SDK para que nunca se registren códigos, contraseñas o respuestas locales',
+    'SecureCapabilities.java': 'exige Security1 y PoP en la negociación; impide seleccionar Security0 aunque el equipo anuncie ese modo',
+    'wifi_setup_test.cpp': 'prueba en PC la pulsación larga, confirmación única, apagado de avisos y límites de millis sin GPIO ni NVS reales',
+    'test_upload_layout.py': 'regresión del offset: impide invadir NVS, usar el binario físico o aceptar tablas incompletas; no abre puertos',
+    'upload_simulation.py': 'comprueba offsets y DRY_RUN, respalda tabla y NVS y solo carga con --execute; la escritura física requiere actuadores desenergizados',
+
     'generate_private_firmware.py': 'materializa siete valores locales en la única fuente pública, respalda cambios anteriores y reemplaza la copia privada de forma completa',
     'test_private_firmware.py': 'prueba doce casos de generación, validación y conservación de código usando datos ficticios, sin leer contraseñas reales',
     'read_kali_references.py': 'lee solo sketches del disco VDI abierto en rb, compara dos lecturas y guarda copias privadas sin cambiar los originales',
@@ -142,7 +152,8 @@ def explain_web(code, filename):
         '{ length: 7 },':'Configura siete elementos para construir los siete días de una semana real.',
         'let data: Snapshot;':'Declara una variable local tipada para la instantánea de demostración; se carga del almacenamiento o se inicializa debajo.',
         'typeof payload.weekStart === "number" ? payload.weekStart : data.weekStart;':'Usa la semana solicitada solo si es numérica; si falta, conserva la seleccionada. typeof comprueba el tipo de ejecución en esta vista local.',
-        '| "nativeView";':'Última alternativa del tipo unión Action; permite pedir la vista clásica y cierra la declaración TypeScript.',
+        '| "nativeView";':'Alternativa del tipo unión Action que permite pedir la vista clásica; el punto y coma, cuando aparece, cierra la declaración TypeScript.',
+        '| "wifiSetup";':'Última alternativa del tipo Action: permite abrir el formulario Wi-Fi nativo. El mensaje no incluye SSID, contraseña ni código local; el punto y coma termina la unión de tipos.',
     }
     if filename.endswith(('.ts','.tsx')) and s in reviewed:return reviewed[s]
     if filename.endswith('.css'):

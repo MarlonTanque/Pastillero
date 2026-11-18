@@ -124,6 +124,12 @@ public class DashboardActivity extends AppCompatActivity {
                             recreate();
                             return;
                         }
+                        if (action.equals("wifiSetup")) {
+                            BridgeProtocol.keys(payload);
+                            startActivity(new Intent(this, WifiSetupActivity.class));
+                            sendReply(reply, response(id, true, new JSONObject(), null));
+                            return;
+                        }
                         if (action.equals("nativeView")) {
                             BridgeProtocol.keys(payload);
                             startActivity(new Intent(this, MainActivity.class));

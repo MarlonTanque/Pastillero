@@ -1,10 +1,18 @@
-# PastilleroBadi — firmware unificado
+# PastilleroBadi — Wi-Fi configurable desde Android
 
 Proyecto ISC0633. Raíz para Android Studio: `C:\Users\milit\AndroidStudioProjects\PastilleroBadi`.
 
 Repositorio del equipo: [MarlonTanque/Pastillero](https://github.com/MarlonTanque/Pastillero). Para clonar, configurar Android/ESP32 y continuar el dashboard web, empezar por [COLABORACION_GITHUB.md](docs/COLABORACION_GITHUB.md). El React actual está integrado en el APK; en navegador usa demostración local. La web administrativa independiente sigue pendiente.
 
 Este repositorio publica fuentes y plantillas. La configuración local, credenciales, respaldos, registros completos y entregables compilados permanecen excluidos; las rutas a releases/archives/private que aparecen en informes históricos describen el equipo original.
+
+## Configuración Wi-Fi y botón de confirmación
+
+La versión 2.1 incorpora [Wi-Fi desde la app y conexiones físicas](docs/WIFI_DINAMICO_Y_CONFIRMACION.md). El cliente puede cambiar de router desde Ajustes, con un código de acceso del dispositivo; no necesita editar SSID/contraseña en Arduino. Las constantes Wi-Fi antiguas se conservan por compatibilidad, pero el driver usa la red guardada en NVS.
+
+La pulsación de confirmación apaga buzzer/LED y muestra el acuse en el LCD compatible. La pulsación larga solo abre configuración en reposo y tras soltar el botón. El firmware sigue en simulación por defecto.
+
+**Carga de firmware:** con la tabla de particiones actual no usar la receta estándar de Arduino: app0 está en 0x50000 y OTA en 0x49000. Usar `tools/upload_simulation.py` según la guía. La carga corregida de simulación y la respuesta serie están verificadas; el intercambio Wi-Fi desde un teléfono real y las pruebas de actuadores siguen pendientes. Ver RESULTADOS.md.
 
 ## Archivos principales
 
@@ -16,7 +24,7 @@ Este repositorio publica fuentes y plantillas. La configuración local, credenci
 | Android Java/XML y Room4 | `app/src/` |
 | React/TypeScript y Glass | `web/src/` |
 | Reglas/contrato Firebase | `firebase/database.rules.json`, `docs/CONTRATO_FIREBASE.md` |
-| APK y cuatro variantes compiladas de esta revisión | `releases/unificado-20261022/` |
+| APK y cuatro variantes compiladas de Wi-Fi 2.1 (locales) | `releases/wifi-20261117/` |
 | Sketch original y entregas anteriores | `original/`, `releases/`, `archives/` |
 
 La carpeta principal Arduino contiene el .ino y la tabla técnica partitions.csv. No hay cabeceras propias. Wi-Fi, autenticación Firebase, pines, certificados TLS, estados y funciones están en 17 secciones dentro del .ino. Los valores públicos son marcadores; el generador copia la misma implementación y sustituye solo siete declaraciones para la copia privada.
@@ -35,7 +43,7 @@ Se eligió MQTT.ino de Kali como referencia más completa: Firebase, LDR, DHT11,
 
 ## Repetir validación sin hardware
 
-1. Introducir datos personalmente en `private/firmware.local.json` y ejecutar `python tools/generate_private_firmware.py`. También puedes editar solo los siete literales del .ino privado e importarlos con `python tools/generate_private_firmware.py --import-config`.
+1. Preparar únicamente la identidad Firebase del equipo en `private/firmware.local.json`; SSID/contraseña se reciben desde la app, sin rellenar los marcadores Wi-Fi. Para generar la copia privada, ejecutar `python tools/generate_private_firmware.py`. También puedes editar solo los siete literales del .ino privado e importarlos con `python tools/generate_private_firmware.py --import-config`.
 2. `tools/validate-firmware.ps1`: compila fuente pública y copia privada, cada una con simulación y hardware. No carga firmware ni abre serie.
 3. `tools/validate-integration.ps1`: controlador C++ y contrato local Java/Firebase; `python -m unittest discover -s tests -p test_private_firmware.py` prueba el generador.
 4. `tools/validate-web.ps1`; Android: `gradlew.bat :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug`.

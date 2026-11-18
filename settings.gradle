@@ -5,3 +5,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = 'PastilleroBadi'
 include ':app'
+include ':espProvisioning'
+project(':espProvisioning').projectDir = file('third_party/esp-provisioning')

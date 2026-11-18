@@ -41,5 +41,59 @@
     "credentialsMovedFromManualPublicEditsToPrivateConfiguration": true,
     "privateConfigurationAndBinariesExcluded": true
   },
-  "scope": "Public sources, templates and educational documentation; local account values and complete logs are excluded"
+  "scope": "Public sources, templates and educational documentation; local account values and complete logs are excluded",
+  "wifi21Validation": {
+    "date": "2026-11-18",
+    "version": "2.1-wifi-simulacion",
+    "softwareTestsExecuted": 144,
+    "groups": {
+      "legacyController": 24,
+      "v2Controller": 20,
+      "wifiButtonConfirmation": 9,
+      "eventJson": 6,
+      "snapshotRam": 8,
+      "androidJvm": 42,
+      "react": 26,
+      "androidWifiForm": 2,
+      "uploadLayout": 7
+    },
+    "firmwareCompilations": 4,
+    "correctedFirmwareUpload": "PASS",
+    "firmwareSerialResponse": "PASS",
+    "simulation": true,
+    "wifiCredentialsFromApp": "IMPLEMENTED_PHYSICAL_RADIO_ROUNDTRIP_PENDING",
+    "hardwareActuatorTests": "NOT_EXECUTED",
+    "nvsHistoryBeforeFirstUpload": "NOT_FULLY_VERIFIED",
+    "roomCleared": false,
+    "details": "docs/WIFI_DINAMICO_Y_CONFIRMACION.md",
+    "androidApkBuilt": true,
+    "androidLint": {
+      "errors": 0,
+      "warnings": 1,
+      "warningIds": [
+        "AndroidGradlePluginVersion"
+      ]
+    },
+    "studyGuides": {
+      "files": 123,
+      "nonEmptyLines": 14727,
+      "unexplainedFragments": 0
+    },
+    "firmwareSourceSha256": "8afbb1ddac6eaae0f32e922b9f58020638fb405a071fa599488093362f45ef57",
+    "productionFirebaseRulesChanged": false,
+    "physicalActuatorsUsed": false
+  },
+  "wifi21PublicationChecks": {
+    "date": "2026-11-18",
+    "androidAssembleDebug": "PASS",
+    "androidJvmCasesPassed": 42,
+    "reactCasesPassed": 26,
+    "uploadLayoutCasesPassed": 7,
+    "publicFirmwareSimulationCompile": "PASS",
+    "publicFirmwareHardwareCompile": "PASS",
+    "studyGuideInventory": "PASS",
+    "stagedSecretsAudit": "PASS",
+    "hardwareUsed": false,
+    "details": "docs/RESULTADOS.md"
+  }
 }

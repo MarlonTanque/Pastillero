@@ -520,6 +520,12 @@ def sql_explain(code):
 
 def explain(code,filename,context=''):
     s=code.strip();parts=components(s)
+    if s.startswith('std::atomic<bool> wifiConfigurando'):
+        return 'Declara cuatro banderas atómicas inicialmente falsas: coordinan ventana activa, solicitud, conexión aceptada y fallo entre loop y la tarea de red, sin copiar contraseñas entre tareas ni usar accesos booleanos con carreras de datos.',parts
+    if re.fullmatch(r'wifi_config_t \w+\{\};',s):
+        return 'Crea una estructura de configuración Wi-Fi del SDK e inicializa todos sus bytes a cero. Recibirá la red del driver para comprobar presencia, respaldarla o restaurarla; no se imprime su SSID ni contraseña.',parts
+    if s == 'network_prov_mgr_config_t config{};':
+        return 'Inicializa a cero las opciones del gestor oficial de aprovisionamiento. Las instrucciones siguientes eligen SoftAP y su callback; Security1 y el código individual se entregan al iniciar el servicio.',parts
     web_note=study_v2.explain_web(s,filename)
     if web_note:return web_note,parts
     if s.startswith('template <typename '):

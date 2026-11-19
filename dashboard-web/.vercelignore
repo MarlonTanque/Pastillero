@@ -1,0 +1,7 @@
+# No subir configuración local ni compilaciones: Vercel debe compilar la demostración.
+.env
+.env.*
+!.env.example
+dist
+node_modules
+capturas
